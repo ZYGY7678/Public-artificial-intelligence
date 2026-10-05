@@ -347,125 +347,248 @@ function doDownload(x){
   const a=document.createElement("a");a.href=x.dataUrl;a.download=(x.title||"ai-play").replace(/[\\/:*?"<>|]/g,"_");document.body.append(a);a.click();a.remove();
   if(!state.downloads.includes(x.id))state.downloads.unshift(x.id);x.downloads=(x.downloads||0)+1;state.rep+=1;saveState();toast("ההורדה התחילה");
 }
+function on(sel,event,fn,opts){const el=$(sel);if(el)el.addEventListener(event,fn,opts);return el;}
+function onEach(sel,event,fn,opts){$(sel).forEach(el=>el.addEventListener(event,fn,opts));}
+
 function setupEvents(){
-  $$("[data-close]").forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
-  $$(".modal").forEach(m=>m.onclick=e=>{if(e.target===m)m.classList.remove("open");});
-  $$(".nav-item[data-view],.mobile-bottom [data-view]").forEach(b=>b.onclick=()=>switchView(b.dataset.view));
-  $$("[data-view-target]").forEach(b=>b.onclick=()=>switchView(b.dataset.viewTarget));
+  onEach("[data-close]","click",e=>closeModal(e.currentTarget.dataset.close));
+  onEach(".modal","click",e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove("open");});
+  onEach(".nav-item[data-view],.mobile-bottom [data-view]","click",e=>switchView(e.currentTarget.dataset.view));
+  onEach("[data-view-target]","click",e=>switchView(e.currentTarget.dataset.viewTarget));
 
-  $("#menuBtn").onclick=()=>$("#sidebar").classList.toggle("open");
-  $("#createTop").onclick=()=>openModal("createModal");
-  $("#mobileCreate").onclick=()=>openModal("createModal");
-  $("#uploadSide").onclick=()=>{if(ensureAccount("להעלות"))openModal("uploadModal");};
-  $("#accountBtn").onclick=()=>{if(state.user)switchView("profile");else{switchAuth("login");openModal("authModal");}};
-  $("#notificationsBtn").onclick=()=>toast("אין התראות חדשות");
-  $("#castBtn").onclick=()=>toast("שידור למסך תלוי בתמיכת הדפדפן והמכשיר");
-  $("#topMic").onclick=()=>toast("חיפוש קולי זמין רק בדפדפנים שתומכים בזיהוי קול");
-  $("#shortsSearch").onclick=()=>switchView("search");
-  $("#shortsCamera").onclick=()=>{if(ensureAccount("ליצור"))openModal("uploadModal");};
-  $("#shortsMenu").onclick=()=>toast("אפשרויות Shorts יופיעו לפי היצירה שנבחרה");
+  on("#menuBtn","click",()=>$("#sidebar")?.classList.toggle("open"));
+  on("#createTop","click",()=>openModal("createModal"));
+  on("#mobileCreate","click",()=>openModal("createModal"));
+  on("#uploadSide","click",()=>{if(ensureAccount("להעלות"))openModal("uploadModal");});
+  on("#accountBtn","click",()=>{if(state.user)switchView("profile");else{switchAuth("login");openModal("authModal");}});
+  on("#notificationsBtn","click",()=>toast("אין התראות חדשות"));
+  on("#castBtn","click",()=>toast("שידור למסך תלוי בתמיכת הדפדפן והמכשיר"));
+  on("#topMic","click",()=>toast("חיפוש קולי זמין רק בדפדפנים שתומכים בזיהוי קול"));
+  on("#shortsSearch","click",()=>switchView("search"));
+  on("#shortsCamera","click",()=>{if(ensureAccount("ליצור"))openModal("uploadModal");});
+  on("#shortsMenu","click",()=>toast("אפשרויות Shorts יופיעו לפי היצירה שנבחרה"));
 
-  $("#topSearchForm").onsubmit=e=>{e.preventDefault();const q=$("#topSearch").value.trim();$("#searchInput").value=q;if(q&&!state.searches.includes(q))state.searches.unshift(q);state.searches=state.searches.slice(0,12);saveState();switchView("search");renderSearch(q);};
-  $("#searchForm").onsubmit=e=>{e.preventDefault();const q=$("#searchInput").value.trim();if(q&&!state.searches.includes(q))state.searches.unshift(q);state.searches=state.searches.slice(0,12);saveState();renderSearch(q);};
-  $("#searchInput").oninput=()=>renderSearch($("#searchInput").value);
-  $("#searchFiltersBtn").onclick=()=>openModal("searchFiltersModal");
-  $$("#searchFiltersModal [data-filter]").forEach(b=>b.onclick=()=>{searchFilter=b.dataset.filter;closeModal("searchFiltersModal");renderSearch($("#searchInput").value);});
-  $$("#homeChips .chip").forEach(b=>b.onclick=()=>{$$("#homeChips .chip").forEach(x=>x.classList.remove("active"));b.classList.add("active");currentFilter=b.dataset.filter;renderHome();});
-  $$("#followingChips .chip").forEach(b=>b.onclick=()=>{$$("#followingChips .chip").forEach(x=>x.classList.remove("active"));b.classList.add("active");renderFollowing(b.dataset.filter);});
+  on("#searchInput","input",e=>renderSearch(e.currentTarget.value));
+  on("#searchFiltersBtn","click",()=>openModal("searchFiltersModal"));
+  onEach("#searchFiltersModal [data-filter]","click",e=>{
+    searchFilter=e.currentTarget.dataset.filter;
+    closeModal("searchFiltersModal");
+    renderSearch($("#searchInput")?.value||"");
+  });
+  onEach("#homeChips .chip","click",e=>{
+    onEach("#homeChips .chip","noop",()=>{});
+    $("#homeChips .chip").forEach(x=>x.classList.remove("active"));
+    e.currentTarget.classList.add("active");
+    currentFilter=e.currentTarget.dataset.filter;
+    renderHome();
+  });
+  onEach("#followingChips .chip","click",e=>{
+    $("#followingChips .chip").forEach(x=>x.classList.remove("active"));
+    e.currentTarget.classList.add("active");
+    renderFollowing(e.currentTarget.dataset.filter);
+  });
 
-  $("#watchTitleToggle").onclick=()=>{$("#watchDescription").classList.toggle("collapsed");$("#watchTitleToggle").classList.toggle("open");};
-  $("#togglePlay").onclick=togglePlayer;
-  $("#prevMedia").onclick=()=>{const arr=filteredItems("all"),i=arr.findIndex(x=>x.id===currentItem?.id);if(i>0)openWatch(arr[i-1].id);};
-  $("#nextMedia").onclick=()=>{const arr=filteredItems("all"),i=arr.findIndex(x=>x.id===currentItem?.id);if(i>=0&&arr[i+1])openWatch(arr[i+1].id);};
-  $("#fullscreenBtn").onclick=()=>{$("#playerShell").requestFullscreen?.().catch?.(()=>{});};
-  $("#progressTrack").onclick=e=>{if(!playerMedia?.duration)return;const r=e.currentTarget.getBoundingClientRect();const p=1-((e.clientX-r.left)/r.width);playerMedia.currentTime=Math.max(0,Math.min(playerMedia.duration,p*playerMedia.duration));updateProgress();};
-  $("#playerSettings").onclick=()=>openModal("settingsModal");
-  $("#playerCast").onclick=()=>toast("שידור למסך תלוי בתמיכת הדפדפן והמכשיר");
-  $("#captionBtn").onclick=()=>toast("אין כתוביות זמינות ביצירה זו");
-  $("#minimizePlayer").onclick=()=>minimizePlayer();
-  $("#subscribeBtn").onclick=()=>toggleSubscription(currentItem?.author);
-  $("#subBell").onclick=()=>toast("התראות הערוץ הופעלו");
-  $$("#watchActions [data-action]").forEach(b=>b.onclick=()=>{
+  on("#topSearchForm","submit",e=>{
+    e.preventDefault();
+    const q=$("#topSearch")?.value.trim()||"";
+    if(q)state.searches.unshift(q);
+    state.searches=[...new Set(state.searches)].slice(0,20);
+    saveState();
+    $("#searchInput")&&( $("#searchInput").value=q );
+    renderSearch(q);
+    switchView("search");
+  });
+
+  on("#searchForm","submit",e=>{
+    e.preventDefault();
+    const q=$("#searchInput")?.value.trim()||"";
+    if(q)state.searches.unshift(q);
+    state.searches=[...new Set(state.searches)].slice(0,20);
+    saveState();
+    renderSearch(q);
+  });
+
+  on("#watchTitleToggle","click",()=>{
+    $("#watchDescription")?.classList.toggle("collapsed");
+    $("#watchTitleToggle")?.classList.toggle("open");
+  });
+  on("#togglePlay","click",togglePlayer);
+  on("#prevMedia","click",()=>{
+    const arr=filteredItems("all"),i=arr.findIndex(x=>x.id===currentItem?.id);
+    if(i>0)openWatch(arr[i-1].id);
+  });
+  on("#nextMedia","click",()=>{
+    const arr=filteredItems("all"),i=arr.findIndex(x=>x.id===currentItem?.id);
+    if(i>=0&&arr[i+1])openWatch(arr[i+1].id);
+  });
+  on("#fullscreenBtn","click",()=>$("#playerShell")?.requestFullscreen?.().catch?.(()=>{}));
+  on("#progressTrack","click",e=>{
+    if(!playerMedia?.duration)return;
+    const r=e.currentTarget.getBoundingClientRect();
+    const p=1-((e.clientX-r.left)/r.width);
+    playerMedia.currentTime=Math.max(0,Math.min(playerMedia.duration,p*playerMedia.duration));
+    updateProgress();
+  });
+  on("#playerSettings","click",()=>openModal("settingsModal"));
+  on("#playerCast","click",()=>toast("שידור למסך תלוי בתמיכת הדפדפן והמכשיר"));
+  on("#captionBtn","click",()=>toast("אין כתוביות זמינות ביצירה זו"));
+  on("#minimizePlayer","click",minimizePlayer);
+  on("#subscribeBtn","click",()=>toggleSubscription(currentItem?.author));
+  on("#subBell","click",()=>toast("התראות הערוץ הופעלו"));
+  onEach("#watchActions [data-action]","click",e=>{
     if(!currentItem)return;
-    const a=b.dataset.action;
+    const a=e.currentTarget.dataset.action;
     if(a==="like")toggleLiked(currentItem.id);
-    if(a==="share")shareItem(currentItem);
-    if(a==="save")toggleSaved(currentItem.id);
-    if(a==="download")doDownload(currentItem);
-    if(a==="dislike")toast("סומן לא אהבתי");
-    if(a==="remix")toast("רימיקס יהיה זמין לאחר חיבור כלי היצירה");
-    if(a==="clip")toast("קליפ יהיה זמין לאחר חיבור שרת המדיה");
+    else if(a==="share")shareItem(currentItem);
+    else if(a==="save")toggleSaved(currentItem.id);
+    else if(a==="download")doDownload(currentItem);
+    else if(a==="dislike")toast("סומן לא אהבתי");
+    else if(a==="remix")toast("רימיקס יהיה זמין לאחר חיבור כלי היצירה");
+    else if(a==="clip")toast("קליפ יהיה זמין לאחר חיבור שרת המדיה");
   });
 
-  $("#incognitoBtn").onclick=()=>toast("מצב גלישה בסתר מוכן לממשק; נתוני החשבון לא יוצגו בו");
-  $("#switchAccount").onclick=async()=>{if(sb)await sb.auth.signOut();state.user=null;state.items=[];state.rep=0;renderUser();switchAuth("login");openModal("authModal");};
-  $("#profileCast").onclick=()=>toast("שידור למסך תלוי בתמיכת הדפדפן והמכשיר");
-  $("#profileSearch").onclick=()=>switchView("search");
-  $("#profileSettings").onclick=()=>openModal("settingsModal");
+  on("#incognitoBtn","click",()=>toast("מצב גלישה בסתר מוכן לממשק; נתוני החשבון לא יוצגו בו"));
+  on("#switchAccount","click",async()=>{
+    try{if(sb)await sb.auth.signOut();}catch(e){console.error(e);}
+    state.user=null;state.items=[];state.rep=0;state.liked=[];state.downloads=[];state.following=[];state.subscribed=[];
+    saveState();renderUser();switchAuth("login");openModal("authModal");
+  });
+  on("#profileCast","click",()=>toast("שידור למסך תלוי בתמיכת הדפדפן והמכשיר"));
+  on("#profileSearch","click",()=>switchView("search"));
+  on("#profileSettings","click",()=>openModal("settingsModal"));
 
-  $$(".tabs button").forEach(b=>b.onclick=()=>switchAuth(b.dataset.auth));
-  $("#authSubmit").onclick=async()=>{
-    const signup=$(".tabs button.active").dataset.auth==="signup",name=$("#authName").value.trim(),email=$("#authEmail").value.trim(),pass=$("#authPass").value,terms=$("#termsOk").checked;
-    if(!email.includes("@")||pass.length<6||(signup&&(!name||!terms))){toast("בדקו את הפרטים: סיסמה צריכה להכיל לפחות 6 תווים");return}
-    if(!sb){toast("שירות הנתונים אינו זמין כרגע");return}
-    $("#authSubmit").disabled=true;
+  onEach(".tabs button","click",e=>switchAuth(e.currentTarget.dataset.auth));
+  on("#authSubmit","click",async()=>{
+    const signup=$(".tabs button.active")?.dataset.auth==="signup";
+    const name=$("#authName")?.value.trim()||"";
+    const email=$("#authEmail")?.value.trim()||"";
+    const pass=$("#authPass")?.value||"";
+    const terms=$("#termsOk")?.checked||false;
+    if(!email.includes("@")||pass.length<6||(signup&&(!name||!terms))){
+      toast("בדקו את הפרטים: סיסמה צריכה להכיל לפחות 6 תווים");
+      return;
+    }
+    if(!sb){toast("שירות הנתונים אינו זמין כרגע");return;}
+    const btn=$("#authSubmit");
+    if(btn)btn.disabled=true;
     try{
-      if(signup){await signUpServer(name,email,pass); if((await sb.auth.getSession()).data.session){await loadServerState();closeModal("authModal");}}
-      else await signInServer(email,pass);
-    }catch(e){toast("שגיאה: "+(e?.message||"לא ניתן להתחבר"))}
-    finally{$("#authSubmit").disabled=false}
-  };
-
-  $$(".create-options [data-create]").forEach(b=>b.onclick=()=>{
-    const type=b.dataset.create;closeModal("createModal");
-    if(type==="video"){if(ensureAccount("להעלות"))openModal("uploadModal");}
-    else if(type==="short"){if(ensureAccount("ליצור")){openModal("studioModal");$(".media-tabs button[data-studio-type=\"shorts\"]")?.click();$("#prompt").focus();}}
-    else if(type==="post")toast("פוסט יתווסף בחיבור השרת");
-    else toast("שידור חי יתווסף בחיבור השרת");
+      if(signup){
+        await signUpServer(name,email,pass);
+        if((await sb.auth.getSession()).data.session){
+          await loadServerState();
+          closeModal("authModal");
+        }
+      }else{
+        await signInServer(email,pass);
+      }
+    }catch(e){
+      console.error(e);
+      toast("שגיאה: "+(e?.message||"לא ניתן להתחבר"));
+    }finally{
+      if(btn)btn.disabled=false;
+    }
   });
 
-  $$(".media-tabs button").forEach(b=>b.onclick=()=>{$$(".media-tabs button").forEach(x=>x.classList.remove("active"));b.classList.add("active");});
-  $("#createWork").onclick=()=>{
-    if(!ensureAccount("ליצור"))return;
-    const p=$("#prompt").value.trim();if(!p){toast("כתבו הנחיה");return}
-    const type=$(".media-tabs button.active").dataset.studioType;
-    state.items.unshift({id:"c"+Date.now(),type,title:p.slice(0,70),author:state.user.name,views:0,likes:0,status:"draft",time:"עכשיו",description:p,thumb:"local",short:type==="shorts"});
-    state.rep+=2;saveState();closeModal("studioModal");$("#prompt").value="";renderHome();renderUser();toast("הטיוטה נשמרה");
-  };
+  onEach(".create-options [data-create]","click",e=>{
+    const type=e.currentTarget.dataset.create;
+    closeModal("createModal");
+    if(type==="video"){
+      if(ensureAccount("להעלות"))openModal("uploadModal");
+    }else if(type==="short"){
+      if(ensureAccount("ליצור")){
+        openModal("studioModal");
+        $(".media-tabs button[data-studio-type=\"shorts\"]")?.click();
+        $("#prompt")?.focus();
+      }
+    }else if(type==="post"){
+      toast("פוסט יתווסף בחיבור השרת");
+    }else{
+      toast("שידור חי יתווסף בחיבור השרת");
+    }
+  });
 
-  $("#file").onchange=e=>{const f=e.target.files[0];if(f)$("#fileName").textContent=f.name;};
-  $("#uploadSubmit").onclick=async()=>{
+  onEach(".media-tabs button","click",e=>{
+    $(".media-tabs button").forEach(x=>x.classList.remove("active"));
+    e.currentTarget.classList.add("active");
+  });
+
+  on("#createWork","click",()=>{
+    if(!ensureAccount("ליצור"))return;
+    const p=$("#prompt")?.value.trim()||"";
+    if(!p){toast("כתבו הנחיה");return}
+    const type=$(".media-tabs button.active")?.dataset.studioType||"video";
+    state.items.unshift({id:"c"+Date.now(),type,title:p.slice(0,70),author:state.user.name,views:0,likes:0,status:"draft",time:"עכשיו",description:p,thumb:"local",short:type==="shorts"});
+    state.rep+=2;saveState();closeModal("studioModal");$("#prompt")&&( $("#prompt").value="" );renderHome();renderUser();toast("הטיוטה נשמרה");
+  });
+
+  on("#file","change",e=>{
+    const f=e.currentTarget.files?.[0];
+    if(f&&$("#fileName"))$("#fileName").textContent=f.name;
+  });
+  on("#uploadSubmit","click",async()=>{
     if(!ensureAccount("להעלות"))return;
-    const f=$("#file").files[0],title=$("#uploadTitle").value.trim();if(!f||!title){toast("בחרו קובץ ושם");return}
+    const f=$("#file")?.files?.[0],title=$("#uploadTitle")?.value.trim()||"";
+    if(!f||!title){toast("בחרו קובץ ושם");return}
     if(f.size>500*1024*1024){toast("הקובץ גדול מדי (מקסימום 500MB)");return}
-    if(!serverReady){await loadServerState();}
-    $("#uploadSubmit").disabled=true;
+    if(!serverReady)await loadServerState();
+    const btn=$("#uploadSubmit");
+    if(btn)btn.disabled=true;
     try{
       await uploadToServer(f,title);
-      closeModal("uploadModal");$("#file").value="";$("#uploadTitle").value="";$("#fileName").textContent="עד 500MB";
+      closeModal("uploadModal");
+      if($("#file"))$("#file").value="";
+      if($("#uploadTitle"))$("#uploadTitle").value="";
+      if($("#fileName"))$("#fileName").textContent="עד 500MB";
       toast("הקובץ הועלה ונשלח לבדיקה");
-    }catch(e){toast("שגיאה בהעלאה: "+(e?.message||"לא ניתן להעלות"))}
-    finally{$("#uploadSubmit").disabled=false}
-  };
+    }catch(e){
+      console.error(e);
+      toast("שגיאה בהעלאה: "+(e?.message||"לא ניתן להעלות"));
+    }finally{
+      if(btn)btn.disabled=false;
+    }
+  });
 
-  $("#settingAutoplay").onchange=e=>{$("#autoplay").checked=e.target.checked;state.settings.autoplay=e.target.checked;saveState();toast("העדפת הניגון נשמרה");};
-  $("#settingDark").onchange=e=>{state.settings.dark=e.target.checked;document.body.classList.toggle("light",!e.target.checked);saveState();};
-  $("#resetLocal").onclick=async()=>{if(confirm("לצאת מהחשבון ולנקות את הנתונים המקומיים?")){if(sb)await sb.auth.signOut();localStorage.removeItem(KEY);location.reload();}};
-  $("#allSubscriptions").onclick=()=>toast(state.following.length?state.following.join(" · "):"אין עדיין מינויים");
-
-  $("#commentsPreview").onclick=()=>toast("פאנל תגובות מלא ייפתח לאחר חיבור שירות תגובות");$("#premiumCard").onclick=()=>toast("Premium יופעל בחיבור המנוי לשרת");
-  $("#miniPlay").onclick=togglePlayer;
-  $("#miniClose").onclick=()=>{$("#miniPlayer").classList.add("hidden");};
-  $("#autoplay").onchange=e=>{state.settings.autoplay=e.target.checked;$("#settingAutoplay").checked=e.target.checked;saveState();};
+  on("#settingAutoplay","change",e=>{
+    const v=e.currentTarget.checked;
+    if($("#autoplay"))$("#autoplay").checked=v;
+    state.settings.autoplay=v;saveState();toast("העדפת הניגון נשמרה");
+  });
+  on("#settingDark","change",e=>{
+    state.settings.dark=e.currentTarget.checked;
+    document.body.classList.toggle("light",!e.currentTarget.checked);
+    saveState();
+  });
+  on("#resetLocal","click",async()=>{
+    if(!confirm("לצאת מהחשבון ולנקות את הנתונים המקומיים?"))return;
+    try{if(sb)await sb.auth.signOut();}catch(e){console.error(e);}
+    localStorage.removeItem(KEY);location.reload();
+  });
+  on("#allSubscriptions","click",()=>toast(state.following.length?state.following.join(" · "):"אין עדיין מינויים"));
+  on("#commentsPreview","click",()=>toast("פאנל תגובות מלא ייפתח לאחר חיבור שירות תגובות"));
+  on("#premiumCard","click",()=>toast("Premium יופעל בחיבור המנוי לשרת"));
+  on("#miniPlay","click",togglePlayer);
+  on("#miniClose","click",()=>$("#miniPlayer")?.classList.add("hidden"));
+  on("#autoplay","change",e=>{
+    state.settings.autoplay=e.currentTarget.checked;
+    if($("#settingAutoplay"))$("#settingAutoplay").checked=e.currentTarget.checked;
+    saveState();
+  });
 
   let sx=0;
-  $("#playerShell").addEventListener("touchstart",e=>{sx=e.touches[0].clientX;lastTouch=Date.now();},{passive:true});
-  $("#playerShell").addEventListener("touchend",e=>{const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>130){dx>0?seekBy(-10):seekBy(10)}});
-  $("#playerShell").addEventListener("dblclick",e=>{const r=e.currentTarget.getBoundingClientRect();seekBy((e.clientX-r.left)<r.width/2?-10:10);});
+  on("#playerShell","touchstart",e=>{sx=e.touches[0]?.clientX||0;lastTouch=Date.now()},{passive:true});
+  on("#playerShell","touchend",e=>{
+    const dx=(e.changedTouches[0]?.clientX||0)-sx;
+    if(Math.abs(dx)>130)dx>0?seekBy(-10):seekBy(10);
+  });
+  on("#playerShell","dblclick",e=>{
+    const r=e.currentTarget.getBoundingClientRect();
+    seekBy((e.clientX-r.left)<r.width/2?-10:10);
+  });
   let py=0;
-  $("#playerShell").addEventListener("pointerdown",e=>{py=e.clientY;});
-  $("#playerShell").addEventListener("pointerup",e=>{if(e.clientY-py>100)minimizePlayer();});
+  on("#playerShell","pointerdown",e=>{py=e.clientY;});
+  on("#playerShell","pointerup",e=>{if(e.clientY-py>100)minimizePlayer();});
 }
+
 function minimizePlayer(){
   if(!currentItem)return;
   $("#miniTitle").textContent=currentItem.title||"יצירה";$("#miniAuthor").textContent=currentItem.author||"יוצר";$("#miniPlayer").classList.remove("hidden");
