@@ -19,7 +19,18 @@ function setRep(v){store.reps[userKey()]=Math.max(0,v);persist();renderUser()}
 function renderUser(){const logged=!!store.user;$('#loginBtn').classList.toggle('hidden',logged);$('#signupBtn').classList.toggle('hidden',logged);$('#userPill').classList.toggle('hidden',!logged);$('#userName').textContent=store.user?.name||'אורח';$('#userAvatar').textContent=(store.user?.name||'א').trim().charAt(0);$('#userRep').textContent=rep()+' ✦';$('#sideRep').textContent=rep();const pct=Math.min(100,Math.round((rep()%300)/3));$('#repProgress').style.width=Math.max(4,pct)+'%';$('#repNextText').textContent=rep()>=300?'רמה 3 פתוחה':'עוד '+Math.max(0,300-rep())+' עד רמה הבאה'}
 function ensureUser(action){if(!store.user){openModal('authModal');toast('כדי '+action+' צריך לפתוח חשבון');return false}return true}
 
-function renderFeed(filter='all', query=''){let items=[...store.custom.map((x,i)=>({...x,id:'c'+i})),...baseContent];items=items.filter(x=>(filter==='all'||x.type===filter)&&(!query||[x.title,x.author].join(' ').includes(query)));$('#feedGrid').innerHTML=items.map(x=>`<article class="content-card" data-type="${x.type}"><div class="thumb ${x.thumb||'one'}">${x.type==='video'?'<span class="play">▶</span>':''}<span class="kind">${x.type==='video'?'VIDEO':'IMAGE'}</span></div><div class="content-meta"><h3>${esc(x.title)}</h3><div class="meta-row"><div class="author"><span class="author-dot">${esc(x.initial||'י')}</span><span>${esc(x.author)}</span></div><span>◉ ${Number(x.views||0).toLocaleString('he-IL')}</span></div></div></article>`).join('')||'<div class="panel" style="grid-column:1/-1">לא נמצאו יצירות תואמות.</div>'}
+function renderFeed(filter='all', query=''){let items=[...store.custom.map((x,i)=>({...x,id:'c'+i})),...baseContent];items=items.filter(x=>(filter==='all'||x.type===filter)&&(!query||[x.title,x.author].join(' ').includes(query)));$('#feedGrid').innerHTML=items.map(x=>`<article class="content-card" data-type="${x.type}"><div class="thumb ${x.thumb||'one'}">${x.type==='video'?'<span class="play">▶</span>':''}<span class="kind">${x.type==='video'?'VIDEO':'IMAGE'}</span></div><div class="content-meta"><h3>${esc(x.title)}</h3><div class="meta-row"><div class="author"><span class="author-dot">${esc(x.initial||'י')}</span><span>${esc(x.author)}</span></div><span>◉ ${Number(x.views||0).toLocaleString('he-IL')}</span></div><div class="card-actions"><button class="tiny-btn watch-btn" data-id="${x.id}">▶ צפייה</button><button class="tiny-btn download-btn" data-id="${x.id}">↓ הורדה</button></div></div></article>`).join('')||'<div class="panel" style="grid-column:1/-1">לא נמצאו יצירות תואמות.</div>'}
+function bindCardActions(){
+  $('.watch-btn').forEach(b=>b.onclick=()=>{
+    const item=[...baseContent,...store.custom.map((x,i)=>({...x,id:'c'+i}))].find(x=>String(x.id)===String(b.dataset.id));
+    if(item){item.views=Number(item.views||0)+1;toast('צפייה נספרה ליוצר · +1 מוניטין עבורו');}
+  });
+  $('.download-btn').forEach(b=>b.onclick=()=>{
+    if(!ensureUser('להוריד יצירה'))return;
+    if(rep()<100){toast('הורדה נפתחת מרמה של 100 ✦ מוניטין');return}
+    toast('הורדה אושרה · +3 מוניטין ליוצר');
+  });
+}
 function renderCreators(){ $('#creatorGrid').innerHTML=creators.map(c=>`<div class="creator"><div class="big-avatar">${c[2]}</div><h3>${c[0]}</h3><p>יוצר תוכן AI</p><span class="creator-rep">✦ ${c[1]} מוניטין</span></div>`).join('')}
 function renderLeaders(){ $('#leaderList').innerHTML=leaders.map((l,i)=>`<div class="leader ${i===0?'top':''}"><span>0${i+1}</span><div class="name"><i>${l[0].charAt(0)}</i><div><b>${l[0]}</b><small>יוצר פעיל</small></div></div><strong>✦ ${l[1]}</strong></div>`).join('')}
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -27,6 +38,7 @@ function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;',
 $$('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
 $$('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')}));
 $('#createHero').onclick=()=>{if(ensureUser('ליצור יצירה חדשה'))openModal('generatorModal')};
+$('#uploadHero').onclick=()=>{if(ensureUser('להעלות יצירה'))openModal('uploadModal')};
 $('#loginBtn').onclick=()=>openModal('authModal');$('#signupBtn').onclick=()=>openModal('authModal');$('#signupLeader').onclick=()=>openModal('authModal');
 $('#repExplain').onclick=()=>toast('מוניטין: צפיות +1, הורדות מאושרות +3, יצירה מאושרת +10. הרעיון הוא לתגמל תרומה ואמון.');
 $$('.segmented button').forEach(b=>b.onclick=()=>{$$('.segmented button').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderFeed(b.dataset.filter)});
