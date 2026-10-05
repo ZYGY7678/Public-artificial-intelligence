@@ -338,7 +338,7 @@ function setupEvents(){
   $$(".create-options [data-create]").forEach(b=>b.onclick=()=>{
     const type=b.dataset.create;closeModal("createModal");
     if(type==="video"){if(ensureAccount("להעלות"))openModal("uploadModal");}
-    else if(type==="short"){if(ensureAccount("ליצור")){openModal("studioModal");$("#prompt").focus();$("#studioTypeShort")?.click();}}
+    else if(type==="short"){if(ensureAccount("ליצור")){openModal("studioModal");$(".media-tabs button[data-studio-type=\"shorts\"]")?.click();$("#prompt").focus();}}
     else if(type==="post")toast("פוסט יתווסף בחיבור השרת");
     else toast("שידור חי יתווסף בחיבור השרת");
   });
@@ -369,7 +369,7 @@ function setupEvents(){
   $("#resetLocal").onclick=()=>{if(confirm("למחוק את כל הנתונים המקומיים של AI פליי?")){localStorage.removeItem(KEY);location.reload();}};
   $("#allSubscriptions").onclick=()=>toast(state.following.length?state.following.join(" · "):"אין עדיין מינויים");
 
-  $("#commentsPreview").onclick=()=>toast("פאנל תגובות מלא ייפתח לאחר חיבור שירות תגובות");
+  $("#commentsPreview").onclick=()=>toast("פאנל תגובות מלא ייפתח לאחר חיבור שירות תגובות");$("#premiumCard").onclick=()=>toast("Premium יופעל בחיבור המנוי לשרת");
   $("#miniPlay").onclick=togglePlayer;
   $("#miniClose").onclick=()=>{$("#miniPlayer").classList.add("hidden");};
   $("#autoplay").onchange=e=>{state.settings.autoplay=e.target.checked;$("#settingAutoplay").checked=e.target.checked;saveState();};
