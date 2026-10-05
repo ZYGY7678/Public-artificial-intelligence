@@ -65,7 +65,8 @@ async function uploadToServer(file,title){
   state.items.unshift(dbItem(data));state.rep=Math.max(state.rep,Number(state.rep||0)+1);renderHome();renderUser();
 }
 
-const saved=JSON.parse(localStorage.getItem(KEY)||"null");
+let saved=null;
+try{saved=JSON.parse(localStorage.getItem(KEY)||"null");}catch(e){try{localStorage.removeItem(KEY);}catch(_){ } saved=null;}
 const state=Object.assign({
   user:null,rep:0,items:[],following:[],liked:[],saved:[],history:[],downloads:[],searches:[],subscribed:[],settings:{autoplay:true,dark:true}
 },saved||{});
