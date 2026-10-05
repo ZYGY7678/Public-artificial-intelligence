@@ -1,7 +1,28 @@
-# Yemot + Gemini Phone Assistant
+# AI פליי — פלטפורמת יוצרים בינה מלאכותית
 
-Node.js webhook service connecting a Yemot HaMashiach phone extension to Google Gemini, with optional Supabase conversation storage and setup assets.
+V1 של פלטפורמה בסגנון קהילת יוצרים: יצירה, העלאה, פיד, מוניטין, בדיקה ידנית ושערי יכולות.
 
-See [SETUP.md](SETUP.md) for deployment instructions and [MASTER_PROMPT_FOR_AI.md](MASTER_PROMPT_FOR_AI.md) for safe AI-assisted setup. Never commit credentials; configure them as environment variables in Render.
+## מה כבר נמצא ב-V1
+- דף בית RTL מלא בעברית עם עיצוב כהה ומודרני.
+- פיד סרטונים/תמונות עם סינון וחיפוש.
+- אזור יוצרים וטבלת מוניטין.
+- סטודיו AI מדגים יצירת סרטון/תמונה לפי פרומפט.
+- העלאת קובץ והכנסה לתור "בדיקה ידנית".
+- הרשמה/כניסה במצב Demo באמצעות localStorage.
+- מערכת מוניטין בסיסית שמתקדמת לפי פעילות.
+- כל הממשק רספונסיבי למחשב ולנייד.
 
-Status: starter project. Verify provider APIs, model availability, security, and a real end-to-end test call before production use.
+## חשוב
+הגרסה הנוכחית היא **V1 ויזואלית ופונקציונלית בצד־לקוח**. אין עדיין שרת אמיתי לעיבוד AI, אחסון קבצים, אימות מאובטח או צוות מנהלים. לכן אין להציג את מצב Demo כחשבון אמיתי.
+
+## שלב הבא לפרודקשן
+1. Supabase Auth לחשבונות.
+2. Supabase Storage לקבצי תמונה/וידאו.
+3. PostgreSQL לטבלאות users / creations / views / downloads / reputation / reviews.
+4. Edge Function / backend שמתווך לקריאות ספקי AI בלי לחשוף API keys בדפדפן.
+5. תור Moderation למנהלים + audit log.
+6. חוקי מוניטין בצד שרת כדי למנוע זיוף צפיות/הורדות.
+7. הרשאות הורדה לפי סף מוניטין.
+8. CDN, rate limiting, abuse protection וניטור.
+
+האתר מיועד לשמש כבסיס עיצובי ומוצרי לפני חיבור התשתית האמיתית.

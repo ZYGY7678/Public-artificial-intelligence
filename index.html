@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0b0b10" />
+  <meta name="description" content="AI פליי — פלטפורמת יוצרים לתוכן שנוצר בבינה מלאכותית, עם קהילה, מוניטין ובדיקה ידנית." />
+  <title>AI פליי — בית היוצרים של ה-AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="toast" class="toast" aria-live="polite"></div>
+  <header class="topbar">
+    <a class="brand" href="#home" aria-label="AI פליי">
+      <span class="brand-mark"><span></span><i></i><b></b></span>
+      <span><strong>AI פליי</strong><small>בית היוצרים</small></span>
+    </a>
+    <nav class="nav">
+      <a href="#discover">גלה</a>
+      <a href="#creators">יוצרים</a>
+      <a href="#leaderboard">מובילים</a>
+      <a href="#about">איך זה עובד</a>
+    </nav>
+    <div class="top-actions">
+      <button class="icon-btn" id="searchBtn" title="חיפוש" aria-label="חיפוש">⌕</button>
+      <button class="ghost-btn" id="loginBtn">כניסה</button>
+      <button class="primary-btn" id="signupBtn">הצטרפות</button>
+      <div class="user-pill hidden" id="userPill">
+        <span class="avatar" id="userAvatar">ז</span>
+        <span id="userName">אורח</span>
+        <span class="rep-mini" id="userRep">0 ✦</span>
+      </div>
+    </div>
+  </header>
+
+  <main id="home">
+    <section class="hero shell">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="live-dot"></span> הקהילה החדשה ליצירה ב-AI</div>
+        <h1>יוצרים.<br><em>משתפים.</em><br>בונים מוניטין.</h1>
+        <p>מקום אחד לסרטונים, תמונות ויצירות AI. כל צפייה מחזקת את היוצר, וכל הורדה מגיעה עם רמת אמון.</p>
+        <div class="hero-actions">
+          <button class="primary-btn xl" id="createHero">✦ צור יצירה חדשה</button>
+          <a class="secondary-btn xl" href="#discover">התחל לגלות ←</a>
+        </div>
+        <div class="trust-row">
+          <span>✓ תוכן עובר בדיקה ידנית</span><span>✓ מערכת מוניטין</span><span>✓ פיד נקי ומאושר</span>
+        </div>
+      </div>
+      <div class="hero-art">
+        <div class="orb orb-a"></div><div class="orb orb-b"></div>
+        <div class="ai-card main-preview">
+          <div class="preview-image gradient-sky"></div>
+          <div class="preview-bottom"><div><strong>עולם חדש</strong><span>יצירה מאושרת · לפני 2 דק׳</span></div><span class="chip">AI VIDEO</span></div>
+        </div>
+        <div class="float-card stat-card">
+          <span class="float-icon">✦</span><b>+24</b><small>מוניטין היום</small>
+        </div>
+        <div class="float-card creator-card">
+          <div class="mini-avatars"><span>א</span><span>מ</span><span>י</span><span>+</span></div>
+          <div><b>12,480</b><small>צופים פעילים</small></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="metrics shell">
+      <div><b id="metricCreators">1,284</b><span>יוצרים</span></div>
+      <div><b id="metricCreations">8,692</b><span>יצירות מאושרות</span></div>
+      <div><b>2.4M</b><span>צפיות החודש</span></div>
+      <div><b>97%</b><span>זמן בדיקה ≤ 24 שעות</span></div>
+    </section>
+
+    <section class="section shell" id="discover">
+      <div class="section-head">
+        <div><div class="eyebrow">הפיד שלך</div><h2>גלה יצירות ששווה לראות</h2></div>
+        <div class="segmented" role="tablist">
+          <button class="active" data-filter="all">הכול</button>
+          <button data-filter="video">סרטונים</button>
+          <button data-filter="image">תמונות</button>
+        </div>
+      </div>
+      <div class="content-layout">
+        <div class="feed-grid" id="feedGrid"></div>
+        <aside class="sidebar">
+          <div class="panel reputation-panel">
+            <div class="panel-top"><span class="eyebrow">המוניטין שלי</span><span class="rank-badge">רמה 2</span></div>
+            <div class="rep-number"><b id="sideRep">0</b><span>✦</span></div>
+            <div class="progress"><i id="repProgress"></i></div>
+            <div class="progress-labels"><span id="repNextText">עוד 100 עד רמה הבאה</span><span>300 ✦</span></div>
+            <button class="link-btn" id="repExplain">איך מרוויחים? ←</button>
+          </div>
+          <div class="panel">
+            <div class="panel-title"><span>🔥</span><b>מה חם עכשיו</b></div>
+            <div class="trend"><span>01</span><div><b>סצנות קולנועיות</b><small>+184% השבוע</small></div></div>
+            <div class="trend"><span>02</span><div><b>איורים בסגנון קומיקס</b><small>+92% השבוע</small></div></div>
+            <div class="trend"><span>03</span><div><b>וידאו עם קול AI</b><small>+61% השבוע</small></div></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="creator-strip section shell" id="creators">
+      <div class="section-head compact"><div><div class="eyebrow">אנשים מאחורי היצירות</div><h2>יוצרים ששווה לעקוב אחריהם</h2></div><a href="#leaderboard" class="link-btn">לכל המובילים ←</a></div>
+      <div class="creator-grid" id="creatorGrid"></div>
+    </section>
+
+    <section class="leaderboard section shell" id="leaderboard">
+      <div class="leader-card">
+        <div class="leader-copy"><div class="eyebrow">טבלת המוניטין</div><h2>מי מוביל את הקהילה?</h2><p>הדירוג מבוסס על פעילות אמיתית: צפיות, הורדות שאושרו, יצירות שפורסמו ואמון הקהילה.</p><button class="secondary-btn" id="signupLeader">בואו נבנה אתכם למעלה</button></div>
+        <div class="leaders" id="leaderList"></div>
+      </div>
+    </section>
+
+    <section class="how section shell" id="about">
+      <div class="section-head"><div><div class="eyebrow">פשוט להתחיל</div><h2>איך זה עובד?</h2></div></div>
+      <div class="how-grid">
+        <div class="how-item"><span>01</span><b>יוצרים עם AI</b><p>פותחים את הסטודיו, בוחרים סוג יצירה, כותבים פרומפט ומתחילים.</p></div>
+        <div class="how-item"><span>02</span><b>שולחים לבדיקה</b><p>כל יצירה חדשה נכנסת לתור בדיקה ידנית לפני שהיא מופיעה בפיד.</p></div>
+        <div class="how-item"><span>03</span><b>בונים אמון</b><p>צפיות, הורדות ופעילות איכותית מצטברות לניקוד מוניטין.</p></div>
+        <div class="how-item"><span>04</span><b>פותחים יכולות</b><p>ככל שהמוניטין גדל, נפתחות יכולות נוספות ליוצר ולקהילה.</p></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer"><div class="shell footer-inner"><div><strong>AI פליי</strong><span>קהילה בטוחה ליצירה ושיתוף ב-AI.</span></div><span>V1 · בנוי כבסיס לפלטפורמה מלאה</span></div></footer>
+
+  <div class="modal" id="generatorModal">
+    <div class="modal-card studio-card">
+      <button class="close-btn" data-close="generatorModal">×</button>
+      <div class="modal-head"><div class="eyebrow">AI STUDIO</div><h2>מה ניצור היום?</h2><p>בחרו סוג יצירה, מודל וסגנון — והכינו את היצירה לפרסום.</p></div>
+      <div class="type-switch"><button class="active" data-type="video">▶ סרטון</button><button data-type="image">▧ תמונה</button></div>
+      <label class="field-label">רעיון / פרומפט<textarea id="prompt" rows="4" placeholder="למשל: עיר עתידנית בלילה, תאורת ניאון, צילום קולנועי..."></textarea></label>
+      <div class="field-grid"><label class="field-label">מודל<select id="model"><option>AI Studio Pro</option><option>Fast Creator</option><option>Image Master</option></select></label><label class="field-label">סגנון<select id="style"><option>קולנועי</option><option>נקי ומודרני</option><option>איור</option><option>תלת־ממד</option></select></label></div>
+      <div class="review-note"><span>✓</span><div><b>בדיקה ידנית לפני פרסום</b><small>היצירה תופיע בסטטוס "ממתין לבדיקה" עד אישור.</small></div></div>
+      <button class="primary-btn xl full" id="generateBtn">✦ צור ושלח לבדיקה</button>
+    </div>
+  </div>
+
+  <div class="modal" id="authModal">
+    <div class="modal-card auth-card">
+      <button class="close-btn" data-close="authModal">×</button>
+      <div class="auth-logo"><span class="brand-mark"><span></span><i></i><b></b></span></div>
+      <div class="modal-head center"><div class="eyebrow" id="authEyebrow">ברוכים הבאים</div><h2 id="authTitle">הצטרפו ליוצרים</h2><p id="authText">פתחו חשבון, התחילו ליצור ובנו מוניטין.</p></div>
+      <div class="auth-tabs"><button class="active" data-auth="signup">הרשמה</button><button data-auth="login">כניסה</button></div>
+      <label class="field-label signup-only">שם משתמש<input id="nameInput" placeholder="למשל: יוצר_הערב"></label>
+      <label class="field-label">אימייל<input id="emailInput" type="email" placeholder="name@example.com"></label>
+      <label class="field-label">סיסמה<input id="passwordInput" type="password" placeholder="לפחות 8 תווים"></label>
+      <button class="primary-btn xl full" id="authSubmit">פתיחת חשבון</button>
+      <p class="demo-note">V1 דמו: נתוני החשבון נשמרים בדפדפן לצורך הדגמת המוצר. חיבור לאימות ושרת אמיתי מוכן בשלב הבא.</p>
+    </div>
+  </div>
+
+  <div class="modal" id="uploadModal">
+    <div class="modal-card">
+      <button class="close-btn" data-close="uploadModal">×</button>
+      <div class="modal-head"><div class="eyebrow">פרסום</div><h2>העלאת יצירה</h2><p>הוסיפו קובץ קיים. גם הוא ייכנס לבדיקה ידנית.</p></div>
+      <label class="dropzone"><input type="file" id="fileInput" accept="video/*,image/*"><span>＋</span><b>גררו לכאן או בחרו קובץ</b><small id="fileName">MP4, WebM, PNG, JPG ועוד</small></label>
+      <label class="field-label">שם היצירה<input id="uploadTitle" placeholder="שם קצר ומסקרן"></label>
+      <label class="field-label">תיאור<textarea id="uploadDesc" rows="3" placeholder="מה יצרם?"></textarea></label>
+      <button class="primary-btn xl full" id="uploadBtn">העלה לבדיקה</button>
+    </div>
+  </div>
+
+  <div class="search-drawer" id="searchDrawer"><div class="search-inner"><input id="searchInput" placeholder="חפש יצירה, יוצר או סגנון..." autocomplete="off"><button id="closeSearch">×</button></div></div>
+  <script src="./app.js"></script>
+</body>
+</html>
