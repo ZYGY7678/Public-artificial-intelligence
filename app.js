@@ -350,6 +350,22 @@ function doDownload(x){
 function on(sel,event,fn,opts){const el=$(sel);if(el)el.addEventListener(event,fn,opts);return el;}
 function onEach(sel,event,fn,opts){$(sel).forEach(el=>el.addEventListener(event,fn,opts));}
 
+function installGlobalButtonGuard(){
+  if(window.__aiPlayGlobalButtons)return;
+  window.__aiPlayGlobalButtons=true;
+  document.addEventListener("click",e=>{
+    const b=e.target.closest("button");
+    if(!b)return;
+    if(b.matches("[data-close]"))return;
+    if(b.matches(".nav-item[data-view],.mobile-bottom [data-view]"))return;
+    if(b.matches("[data-view-target]"))return;
+    if(b.matches("[data-open],[data-save],[data-menu]"))return;
+    if(b.closest("#watchActions")||b.matches("#subscribeBtn"))return;
+    if(b.matches(".tabs button,.media-tabs button,.create-options [data-create]"))return;
+    if(b.id==="menuBtn"||b.id==="createTop"||b.id==="mobileCreate"||b.id==="uploadSide"||b.id==="accountBtn"||b.id==="notificationsBtn"||b.id==="castBtn"||b.id==="topMic"||b.id==="shortsSearch"||b.id==="shortsCamera"||b.id==="shortsMenu"||b.id==="searchFiltersBtn"||b.id==="watchTitleToggle"||b.id==="togglePlay"||b.id==="prevMedia"||b.id==="nextMedia"||b.id==="fullscreenBtn"||b.id==="playerSettings"||b.id==="playerCast"||b.id==="captionBtn"||b.id==="minimizePlayer"||b.id==="subBell"||b.id==="incognitoBtn"||b.id==="switchAccount"||b.id==="profileCast"||b.id==="profileSearch"||b.id==="profileSettings"||b.id==="authSubmit"||b.id==="createWork"||b.id==="uploadSubmit"||b.id==="resetLocal"||b.id==="allSubscriptions"||b.id==="commentsPreview"||b.id==="premiumCard"||b.id==="miniPlay"||b.id==="miniClose"||b.id==="searchMic")return;
+  },true);
+}
+
 function setupEvents(){
   onEach("[data-close]","click",e=>closeModal(e.currentTarget.dataset.close));
   onEach(".modal","click",e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove("open");});
@@ -599,10 +615,20 @@ function applySettings(){
   $("#autoplay").checked=state.settings.autoplay;$("#settingAutoplay").checked=state.settings.autoplay;$("#settingDark").checked=state.settings.dark;
   document.body.classList.toggle("light",!state.settings.dark);
 }
+function safeRun(name,fn){try{return fn()}catch(e){console.error("[AI Play] "+name,e);toast("שגיאה זמנית בממשק: "+name);return null;}}
 function boot(){
-  mountIcons();setupEvents();applySettings();renderUser();renderHome();renderFollowing("today");renderHistory();renderSimple();renderSearch();
-  switchView("home");
+  installGlobalButtonGuard();
+  safeRun("icons",mountIcons);
+  safeRun("events",setupEvents);
+  safeRun("settings",applySettings);
+  safeRun("user",renderUser);
+  safeRun("home",renderHome);
+  safeRun("following",()=>renderFollowing("today"));
+  safeRun("history",renderHistory);
+  safeRun("simple",renderSimple);
+  safeRun("search",renderSearch);
+  safeRun("view",()=>switchView("home"));
 }
-boot();
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});else boot();
 loadServerState().catch(e=>{console.error(e);toast("האתר עלה, אך החיבור למסד הנתונים נכשל");});
 if(sb)sb.auth.onAuthStateChange(()=>setTimeout(()=>loadServerState(),0));
