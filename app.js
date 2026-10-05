@@ -2,6 +2,69 @@ const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
 
 const KEY="aiplay_v3";
+
+const SUPABASE_URL="https://ikgyozgzhjbdmopsaflp.supabase.co";
+const SUPABASE_KEY="sb_publishable_ezliwatqX0wz_-ScmiWzHw_-OhgkCH8";
+const sb=window.supabase?.createClient(SUPABASE_URL,SUPABASE_KEY);
+let serverReady=false;
+
+function dbItem(row){
+  return {
+    id:row.id,type:row.media_type==="shorts"?"shorts":row.media_type,title:row.title,author:row.profiles?.display_name||"יוצר",
+    authorId:row.user_id,views:Number(row.views_count||0),likes:Number(row.likes_count||0),downloads:Number(row.downloads_count||0),
+    status:row.status,time:new Date(row.created_at).toLocaleDateString("he-IL"),description:row.description||"",
+    storagePath:row.storage_path,thumbnailPath:row.thumbnail_path,duration:Number(row.duration_seconds||0),short:row.media_type==="shorts"
+  };
+}
+async function loadServerState(){
+  if(!sb)return;
+  const {data:{session}}=await sb.auth.getSession();
+  if(session?.user){
+    const {data:p}=await sb.from("profiles").select("*").eq("id",session.user.id).maybeSingle();
+    state.user={id:session.user.id,name:p?.display_name||session.user.email?.split("@")[0]||"משתמש",email:session.user.email||""};
+    state.rep=Number(p?.reputation||0);
+    const {data:rows}=await sb.from("creations").select("*,profiles(display_name)").order("created_at",{ascending:false});
+    state.items=(rows||[]).map(dbItem);
+    const {data:likes}=await sb.from("creation_likes").select("creation_id").eq("user_id",session.user.id);
+    state.liked=(likes||[]).map(x=>x.creation_id);
+    const {data:dl}=await sb.from("downloads").select("creation_id").eq("user_id",session.user.id);
+    state.downloads=(dl||[]).map(x=>x.creation_id);
+    const {data:fol}=await sb.from("follows").select("following_id,profiles!follows_following_id_fkey(display_name)").eq("follower_id",session.user.id);
+    state.following=(fol||[]).map(x=>x.following_id);
+    state.subscribed=(fol||[]).map(x=>x.profiles?.display_name).filter(Boolean);
+    serverReady=true;
+  }else{
+    const {data:rows}=await sb.from("creations").select("*,profiles(display_name)").eq("status","approved").order("created_at",{ascending:false});
+    state.items=(rows||[]).map(dbItem);
+    state.user=null;state.rep=0;state.liked=[];state.downloads=[];state.following=[];state.subscribed=[];
+    serverReady=true;
+  }
+  renderUser();renderHome();renderFollowing("today");renderHistory();renderSimple();renderSearch();
+}
+async function signUpServer(name,email,password){
+  const {data,error}=await sb.auth.signUp({email,password,options:{data:{display_name:name,username:name.toLowerCase().replace(/[^a-z0-9א-ת]+/g,"_").slice(0,30)||"user"}}});
+  if(error)throw error;
+  if(data.user && !data.session) toast("נשלח מייל אימות. אשרו את המייל ואז התחברו.");
+  else toast("החשבון נוצר בהצלחה");
+}
+async function signInServer(email,password){
+  const {data,error}=await sb.auth.signInWithPassword({email,password});
+  if(error)throw error;
+  await loadServerState();closeModal("authModal");toast("התחברתם בהצלחה");
+}
+async function uploadToServer(file,title){
+  const session=(await sb.auth.getSession()).data.session;
+  if(!session)throw new Error("צריך להתחבר");
+  const type=(file.type||"").startsWith("video")?"video":(file.type||"").startsWith("audio")?"audio":"image";
+  const id=crypto.randomUUID();
+  const path=session.user.id+"/"+id+"-"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
+  const {error:up}=await sb.storage.from("ai-play-media").upload(path,file,{contentType:file.type||"application/octet-stream",upsert:false});
+  if(up)throw up;
+  const {data,error}=await sb.from("creations").insert({id,user_id:session.user.id,title,media_type:type,storage_path:path,status:"pending"}).select("*,profiles(display_name)").single();
+  if(error){await sb.storage.from("ai-play-media").remove([path]);throw error;}
+  state.items.unshift(dbItem(data));state.rep=Math.max(state.rep,Number(state.rep||0)+1);renderHome();renderUser();
+}
+
 const saved=JSON.parse(localStorage.getItem(KEY)||"null");
 const state=Object.assign({
   user:null,rep:0,items:[],following:[],liked:[],saved:[],history:[],downloads:[],searches:[],subscribed:[],settings:{autoplay:true,dark:true}
@@ -323,16 +386,22 @@ function setupEvents(){
   });
 
   $("#incognitoBtn").onclick=()=>toast("מצב גלישה בסתר מוכן לממשק; נתוני החשבון לא יוצגו בו");
-  $("#switchAccount").onclick=()=>{state.user=null;saveState();renderUser();switchAuth("login");openModal("authModal");};
+  $("#switchAccount").onclick=async()=>{if(sb)await sb.auth.signOut();state.user=null;state.items=[];state.rep=0;renderUser();switchAuth("login");openModal("authModal");};
   $("#profileCast").onclick=()=>toast("שידור למסך תלוי בתמיכת הדפדפן והמכשיר");
   $("#profileSearch").onclick=()=>switchView("search");
   $("#profileSettings").onclick=()=>openModal("settingsModal");
 
   $$(".tabs button").forEach(b=>b.onclick=()=>switchAuth(b.dataset.auth));
-  $("#authSubmit").onclick=()=>{
+  $("#authSubmit").onclick=async()=>{
     const signup=$(".tabs button.active").dataset.auth==="signup",name=$("#authName").value.trim(),email=$("#authEmail").value.trim(),pass=$("#authPass").value,terms=$("#termsOk").checked;
-    if(!email.includes("@")||pass.length<4||(signup&&(!name||!terms))){toast("בדקו את הפרטים");return}
-    state.user={name:signup?name:email.split("@")[0],email,verified:false};if(signup)state.rep=Math.max(state.rep,5);saveState();closeModal("authModal");renderUser();toast("החשבון נשמר מקומית");
+    if(!email.includes("@")||pass.length<6||(signup&&(!name||!terms))){toast("בדקו את הפרטים: סיסמה צריכה להכיל לפחות 6 תווים");return}
+    if(!sb){toast("שירות הנתונים אינו זמין כרגע");return}
+    $("#authSubmit").disabled=true;
+    try{
+      if(signup){await signUpServer(name,email,pass); if((await sb.auth.getSession()).data.session){await loadServerState();closeModal("authModal");}}
+      else await signInServer(email,pass);
+    }catch(e){toast("שגיאה: "+(e?.message||"לא ניתן להתחבר"))}
+    finally{$("#authSubmit").disabled=false}
   };
 
   $$(".create-options [data-create]").forEach(b=>b.onclick=()=>{
@@ -353,20 +422,23 @@ function setupEvents(){
   };
 
   $("#file").onchange=e=>{const f=e.target.files[0];if(f)$("#fileName").textContent=f.name;};
-  $("#uploadSubmit").onclick=()=>{
+  $("#uploadSubmit").onclick=async()=>{
     if(!ensureAccount("להעלות"))return;
     const f=$("#file").files[0],title=$("#uploadTitle").value.trim();if(!f||!title){toast("בחרו קובץ ושם");return}
-    if(f.size>12*1024*1024){toast("לשמירה מקומית ניתן לבחור קובץ עד 12MB");return}
-    const reader=new FileReader();reader.onload=()=>{
-      const mime=f.type||"",type=mime.startsWith("video")?"video":mime.startsWith("audio")?"audio":"image";
-      state.items.unshift({id:"u"+Date.now(),type,title,author:state.user.name,views:0,likes:0,status:"draft",time:"עכשיו",thumb:"local",dataUrl:reader.result});
-      state.rep+=1;saveState();closeModal("uploadModal");$("#file").value="";$("#uploadTitle").value="";$("#fileName").textContent="עד 12MB לשמירה מקומית";renderHome();renderUser();toast("הקובץ נוסף לספרייה");
-    };reader.readAsDataURL(f);
+    if(f.size>500*1024*1024){toast("הקובץ גדול מדי (מקסימום 500MB)");return}
+    if(!serverReady){await loadServerState();}
+    $("#uploadSubmit").disabled=true;
+    try{
+      await uploadToServer(f,title);
+      closeModal("uploadModal");$("#file").value="";$("#uploadTitle").value="";$("#fileName").textContent="עד 500MB";
+      toast("הקובץ הועלה ונשלח לבדיקה");
+    }catch(e){toast("שגיאה בהעלאה: "+(e?.message||"לא ניתן להעלות"))}
+    finally{$("#uploadSubmit").disabled=false}
   };
 
   $("#settingAutoplay").onchange=e=>{$("#autoplay").checked=e.target.checked;state.settings.autoplay=e.target.checked;saveState();toast("העדפת הניגון נשמרה");};
   $("#settingDark").onchange=e=>{state.settings.dark=e.target.checked;document.body.classList.toggle("light",!e.target.checked);saveState();};
-  $("#resetLocal").onclick=()=>{if(confirm("למחוק את כל הנתונים המקומיים של AI פליי?")){localStorage.removeItem(KEY);location.reload();}};
+  $("#resetLocal").onclick=async()=>{if(confirm("לצאת מהחשבון ולנקות את הנתונים המקומיים?")){if(sb)await sb.auth.signOut();localStorage.removeItem(KEY);location.reload();}};
   $("#allSubscriptions").onclick=()=>toast(state.following.length?state.following.join(" · "):"אין עדיין מינויים");
 
   $("#commentsPreview").onclick=()=>toast("פאנל תגובות מלא ייפתח לאחר חיבור שירות תגובות");$("#premiumCard").onclick=()=>toast("Premium יופעל בחיבור המנוי לשרת");
@@ -397,3 +469,5 @@ function boot(){
   switchView("home");
 }
 boot();
+loadServerState().catch(e=>{console.error(e);toast("האתר עלה, אך החיבור למסד הנתונים נכשל");});
+if(sb)sb.auth.onAuthStateChange(()=>setTimeout(()=>loadServerState(),0));
