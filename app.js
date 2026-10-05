@@ -70,6 +70,17 @@ const state=Object.assign({
   user:null,rep:0,items:[],following:[],liked:[],saved:[],history:[],downloads:[],searches:[],subscribed:[],settings:{autoplay:true,dark:true}
 },saved||{});
 
+// Normalize state from older app versions so one stale localStorage entry cannot stop the entire UI.
+state.items=Array.isArray(state.items)?state.items:[];
+state.following=Array.isArray(state.following)?state.following:[];
+state.liked=Array.isArray(state.liked)?state.liked:[];
+state.saved=Array.isArray(state.saved)?state.saved:[];
+state.history=Array.isArray(state.history)?state.history:[];
+state.downloads=Array.isArray(state.downloads)?state.downloads:[];
+state.searches=Array.isArray(state.searches)?state.searches:[];
+state.subscribed=Array.isArray(state.subscribed)?state.subscribed:[];
+state.settings=Object.assign({autoplay:true,dark:true},state.settings||{});
+
 let currentView="home";
 let currentItem=null;
 let playerMedia=null;
