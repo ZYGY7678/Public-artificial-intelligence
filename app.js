@@ -507,6 +507,13 @@ async function signInServer(email,password){
   if(r.error) throw r.error;
   await loadServerState(); closeModal("authModal"); toast("התחברתם בהצלחה");
 }
+
+async function signInWithGoogle(){
+  if(!sb) throw new Error("שירות הנתונים אינו זמין כרגע");
+  const redirectTo=window.location.origin+window.location.pathname;
+  const r=await sb.auth.signInWithOAuth({provider:"google",options:{redirectTo}});
+  if(r.error) throw r.error;
+}
 function renderShorts(startId){
   const arr=actualItems().filter(x=>x.type==="shorts" || x.short===true);
   const stage=$("#shortsStage");
@@ -591,6 +598,7 @@ function handleClick(e){
     state.user=null;state.rep=0;state.liked=[];state.downloads=[];state.following=[];state.subscribed=[];saveState();renderUser();switchAuth("login");openModal("authModal");return;
   }
   if(target.id==="authSubmit"){ submitAuth(); return; }
+  if(target.id==="googleAuthBtn"){ signInWithGoogle().catch(e=>{console.error(e);toast("שגיאה בכניסה עם Google: "+(e?.message||"לא ניתן להתחבר"));}); return; }
   if(target.matches(".tabs button[data-auth]")){ switchAuth(target.dataset.auth); return; }
   if(target.matches(".create-options [data-create]")){
     const type=target.dataset.create;closeModal("createModal");
@@ -649,6 +657,8 @@ function setup(){
   if(window.__aiplayV4Ready) return;
   window.__aiplayV4Ready=true;
   document.addEventListener("click",handleClick,false);
+
+  $("#googleAuthBtn")?.addEventListener("click",()=>signInWithGoogle().catch(e=>{console.error(e);toast("שגיאה בכניסה עם Google: "+(e?.message||"לא ניתן להתחבר"));}));
 
   document.addEventListener("keydown",e=>{
     if(e.key==="Escape") $$(".modal.open").forEach(m=>m.classList.remove("open"));
