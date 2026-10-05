@@ -1,90 +1,214 @@
 <!doctype html>
 <html lang="he" dir="rtl">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0f1014"><title>AI פליי</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0d10">
+<meta name="description" content="AI פליי — פלטפורמת יצירה וצפייה בתוכן מבוסס בינה מלאכותית">
+<title>AI פליי</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header class="topbar">
-  <button class="menu" id="menuBtn" aria-label="תפריט">☰</button>
-  <a class="brand" href="#home"><span class="mark"><i></i><i></i><i></i></span><b>AI פליי</b></a>
-  <div class="top-search"><button id="searchOpen" aria-label="חיפוש">⌕</button><input id="topSearch" placeholder="חיפוש"><span>חיפוש</span></div>
-  <button class="create-top" id="heroCreate">＋ יצירה</button>
-  <button class="user-top" id="loginOpen">כניסה</button>
-  <button class="gradient-btn" id="signupOpen">הרשמה</button>
-  <button class="profile-mini hidden" id="profileOpen"><span id="navAvatar">א</span><b id="navUser">אורח</b><em id="navRep">0 ✦</em></button>
+  <button class="icon-btn menu-btn" id="menuBtn" aria-label="פתיחת תפריט"><span data-icon="menu"></span></button>
+  <a class="brand" href="#home" aria-label="AI פליי">
+    <span class="brand-mark"><span></span><span></span><span></span></span>
+    <span class="brand-text">AI <b>פליי</b></span>
+  </a>
+
+  <form class="searchbar" id="topSearchForm" role="search">
+    <button type="submit" class="searchbar-btn" aria-label="חיפוש"><span data-icon="search"></span></button>
+    <input id="topSearch" autocomplete="off" placeholder="חיפוש">
+    <button type="button" class="searchbar-mic" id="topMic" aria-label="חיפוש קולי"><span data-icon="mic"></span></button>
+  </form>
+
+  <div class="top-actions">
+    <button class="icon-btn only-desktop" id="castBtn" aria-label="שידור למסך"><span data-icon="cast"></span></button>
+    <button class="icon-btn" id="notificationsBtn" aria-label="התראות"><span data-icon="bell"></span><i class="notif-dot"></i></button>
+    <button class="create-top" id="createTop"><span data-icon="plus"></span> יצירה</button>
+    <button class="account-btn" id="accountBtn"><span id="accountAvatar">א</span><span class="account-copy"><b id="accountName">אורח</b><small id="accountRep">0 ✦</small></span></button>
+  </div>
 </header>
 
-<div class="app">
-<aside class="sidebar" id="sidebar">
-  <nav>
-    <a class="side-link active" data-view="home">⌂ <span>בית</span></a>
-    <a class="side-link" data-view="discover">◉ <span>גלה</span></a>
-    <a class="side-link" data-view="following">♡ <span>במעקב</span></a>
-    <div class="side-line"></div>
-    <a class="side-link" data-view="studio">✧ <span>סטודיו</span></a>
-    <a class="side-link" id="heroUpload">＋ <span>העלאה</span></a>
-    <div class="side-line"></div>
-    <a class="side-link" data-view="creators">♙ <span>יוצרים</span></a>
-    <a class="side-link" data-view="leaderboard">✦ <span>מוניטין</span></a>
-  </nav>
-  <div class="side-bottom"><small>AI פליי</small><small>פלטפורמת יוצרים</small></div>
-</aside>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <nav class="side-primary">
+      <button class="nav-item active" data-view="home"><span data-icon="home"></span><b>בית</b></button>
+      <button class="nav-item" data-view="shorts"><span data-icon="shorts"></span><b>Shorts</b></button>
+      <button class="nav-item" data-view="following"><span data-icon="subscriptions"></span><b>מינויים</b></button>
+    </nav>
+    <div class="side-separator"></div>
+    <nav class="side-secondary">
+      <button class="nav-item" data-view="profile"><span data-icon="user"></span><b>את/ה</b></button>
+      <button class="nav-item" data-view="history"><span data-icon="history"></span><b>היסטוריה</b></button>
+      <button class="nav-item" data-view="playlists"><span data-icon="playlist"></span><b>רשימות הפעלה</b></button>
+      <button class="nav-item" data-view="liked"><span data-icon="like"></span><b>אהבתי</b></button>
+      <button class="nav-item" data-view="downloads"><span data-icon="download"></span><b>הורדות</b></button>
+      <button class="nav-item" data-view="watchlater"><span data-icon="clock"></span><b>צפה מאוחר יותר</b></button>
+    </nav>
+    <div class="side-separator"></div>
+    <nav class="side-secondary">
+      <button class="nav-item" data-view="studio"><span data-icon="spark"></span><b>סטודיו</b></button>
+      <button class="nav-item" id="uploadSide"><span data-icon="upload"></span><b>העלאת תוכן</b></button>
+      <button class="nav-item" data-view="creators"><span data-icon="users"></span><b>יוצרים</b></button>
+      <button class="nav-item" data-view="reputation"><span data-icon="star"></span><b>מוניטין</b></button>
+    </nav>
+    <div class="sidebar-foot"><b>AI פליי</b><span>פלטפורמת יצירה עצמאית</span></div>
+  </aside>
 
-<main class="main" id="main">
-  <section class="view active" data-page="home">
-    <div class="view-head"><div><h1>דף הבית</h1><p>התוכן הזמין בפלטפורמה</p></div></div>
-    <div class="chips"><button class="active" data-filter="all">הכול</button><button data-filter="video">סרטונים</button><button data-filter="image">תמונות</button><button data-filter="new">חדש</button></div>
-    <div class="feed-grid" id="feedGrid"></div>
-  </section>
+  <main class="main" id="main">
+    <section class="view active" data-page="home">
+      <div class="mobile-page-head">
+        <div><h1>דף הבית</h1><p>תוכן ויצירות שנוצרו בפלטפורמה</p></div>
+      </div>
+      <div class="chips" id="homeChips">
+        <button class="chip active" data-filter="all">הכול</button>
+        <button class="chip" data-filter="video">סרטונים</button>
+        <button class="chip" data-filter="shorts">Shorts</button>
+        <button class="chip" data-filter="image">תמונות</button>
+        <button class="chip" data-filter="audio">אודיו</button>
+        <button class="chip" data-filter="new">חדש</button>
+      </div>
+      <div class="content-grid" id="homeGrid"></div>
+      <div class="shelf hidden" id="shortsShelf">
+        <div class="shelf-head"><h2>Shorts</h2><button class="text-btn" data-view-target="shorts">הצג הכול</button></div>
+        <div class="shorts-row" id="homeShortsRow"></div>
+      </div>
+    </section>
 
-  <section class="view" data-page="discover">
-    <div class="view-head"><div><h1>גלה</h1><p>חיפוש וגילוי תוכן שפורסם בפועל</p></div></div>
-    <div class="search-wide"><input id="discoverSearch" placeholder="חפש יצירה או יוצר"><button id="discoverSearchBtn">חיפוש</button></div>
-    <div class="feed-grid" id="discoverGrid"></div>
-  </section>
+    <section class="view" data-page="watch">
+      <div class="watch-layout">
+        <div class="watch-main">
+          <div class="player-shell" id="playerShell">
+            <div class="player-media" id="playerMedia"></div>
+            <div class="player-overlay" id="playerOverlay">
+              <div class="player-top">
+                <button class="player-btn" id="minimizePlayer" aria-label="מזעור"><span data-icon="down"></span></button>
+                <div class="player-top-right">
+                  <button class="player-btn" id="playerCast"><span data-icon="cast"></span></button>
+                  <button class="player-btn" id="captionBtn">CC</button>
+                  <button class="player-btn" id="playerSettings"><span data-icon="settings"></span></button>
+                </div>
+              </div>
+              <div class="player-center">
+                <button class="player-btn" id="prevMedia"><span data-icon="prev"></span></button>
+                <button class="player-btn player-main-btn" id="togglePlay"><span data-icon="play"></span></button>
+                <button class="player-btn" id="nextMedia"><span data-icon="next"></span></button>
+              </div>
+              <div class="player-bottom">
+                <div class="progress-meta"><span id="currentTime">0:00</span><span id="totalTime">0:00</span></div>
+                <div class="progress-track" id="progressTrack"><i id="bufferBar"></i><b id="progressBar"></b><em id="progressHandle"></em></div>
+                <div class="player-bottom-actions"><label class="autoplay"><input id="autoplay" type="checkbox" checked> ניגון אוטומטי</label><button class="player-btn" id="fullscreenBtn"><span data-icon="fullscreen"></span></button></div>
+              </div>
+            </div>
+          </div>
+          <div class="watch-info">
+            <button class="watch-title-toggle" id="watchTitleToggle"><h1 id="watchTitle">יצירה</h1><span data-icon="down"></span></button>
+            <div class="watch-desc collapsed" id="watchDescription"></div>
+            <div class="channel-row">
+              <div class="channel-avatar" id="watchAvatar">א</div>
+              <div class="channel-copy"><b id="watchAuthor">יוצר</b><small id="watchSubscribers">0 מנויים</small></div>
+              <button class="subscribe-btn" id="subscribeBtn">הירשם</button>
+              <button class="icon-btn subtle hidden" id="subBell" aria-label="התראות"><span data-icon="bell"></span></button>
+            </div>
+            <div class="action-row" id="watchActions">
+              <button class="action-pill" data-action="like"><span data-icon="like"></span><b id="watchLikeCount">0</b></button>
+              <button class="action-pill" data-action="dislike"><span data-icon="dislike"></span></button>
+              <button class="action-pill" data-action="share"><span data-icon="share"></span><b>שתף</b></button>
+              <button class="action-pill" data-action="remix"><span data-icon="remix"></span><b>רימיקס</b></button>
+              <button class="action-pill" data-action="download"><span data-icon="download"></span><b>הורד</b></button>
+              <button class="action-pill" data-action="clip"><span data-icon="cut"></span><b>קליפ</b></button>
+              <button class="action-pill" data-action="save"><span data-icon="save"></span><b>שמור</b></button>
+            </div>
+            <div class="comments-preview" id="commentsPreview"><div><b>תגובות</b><span id="commentCount">0</span></div><p>הוסיפו את התגובה הראשונה ליצירה הזאת.</p></div>
+          </div>
+        </div>
+        <aside class="recommendations"><div class="section-title"><h2>מומלץ עבורך</h2></div><div id="recommendGrid"></div></aside>
+      </div>
+    </section>
 
-  <section class="view" data-page="following">
-    <div class="view-head"><div><h1>במעקב</h1><p>כאן יופיעו תכנים מיוצרים שאחריהם בחרת לעקוב</p></div></div>
-    <div class="empty"><strong>אין עדיין תכנים במעקב</strong><span>לא יוצגו כאן יוצרים מומצאים. לאחר חיבור נתוני שרת, יוצגו כאן רק מנויים אמיתיים.</span></div>
-  </section>
+    <section class="view" data-page="shorts">
+      <div class="shorts-page" id="shortsPage">
+        <div class="shorts-top"><button class="icon-btn" id="shortsSearch"><span data-icon="search"></span></button><button class="icon-btn" id="shortsCamera"><span data-icon="camera"></span></button><button class="icon-btn" id="shortsMenu"><span data-icon="more"></span></button></div>
+        <div class="shorts-stage" id="shortsStage"></div>
+      </div>
+    </section>
 
-  <section class="view" data-page="creators">
-    <div class="view-head"><div><h1>יוצרים</h1><p>רשימת היוצרים תגיע רק ממסד הנתונים האמיתי</p></div></div>
-    <div class="empty"><strong>אין כרגע רשימת יוצרים מהשרת</strong><span>הגרסה הנוכחית אינה כוללת עדיין מסד נתונים משותף, לכן לא מוצגים שמות מומצאים.</span></div>
-  </section>
+    <section class="view" data-page="following">
+      <div class="page-head"><div><h1>מינויים</h1><p>סרטונים מהיוצרים שאחריהם בחרת לעקוב</p></div><button class="outline-btn" id="allSubscriptions">הכול</button></div>
+      <div class="channel-scroller" id="channelScroller"></div>
+      <div class="chips" id="followingChips"><button class="chip active" data-filter="today">היום</button><button class="chip" data-filter="video">סרטונים</button><button class="chip" data-filter="shorts">Shorts</button><button class="chip" data-filter="live">שידורים חיים</button><button class="chip" data-filter="unwatched">לא נצפו</button></div>
+      <div class="content-grid" id="followingGrid"></div>
+    </section>
 
-  <section class="view" data-page="leaderboard">
-    <div class="view-head"><div><h1>מוניטין</h1><p>הניקוד המקומי שלך מוצג בלי להמציא דירוגים של משתמשים אחרים</p></div></div>
-    <div class="stats-grid">
-      <div class="stat"><span>המוניטין שלי</span><b id="repValue">0</b><small>✦</small></div>
-      <div class="stat"><span>רמה</span><b id="repLevel">1</b><small id="repTarget">יעד: 100 ✦</small></div>
-      <div class="stat"><span>היצירות שלי</span><b id="myCount">0</b><small>פריטים שנוצרו בדפדפן הזה</small></div>
-    </div>
-    <div class="panel rep-panel"><div class="between"><b>התקדמות לרמה הבאה</b><span id="repGoal">פתחו חשבון כדי להתחיל</span></div><div class="bar"><i id="repProgress"></i></div></div>
-  </section>
+    <section class="view" data-page="profile">
+      <div class="profile-head">
+        <div class="profile-avatar" id="profileAvatar">א</div>
+        <div class="profile-copy"><h1 id="profileName">אורח</h1><p id="profileHandle">@guest</p></div>
+        <button class="outline-btn" id="switchAccount">החלף חשבון</button>
+        <button class="outline-btn" id="incognitoBtn">מצב גלישה בסתר</button>
+        <div class="profile-head-actions"><button class="icon-btn" id="profileCast"><span data-icon="cast"></span></button><button class="icon-btn" id="profileSearch"><span data-icon="search"></span></button><button class="icon-btn" id="profileSettings"><span data-icon="settings"></span></button></div>
+      </div>
+      <div class="history-strip"><div class="section-title"><h2>היסטוריה</h2><button class="text-btn" data-view-target="history">הצג הכול</button></div><div class="mini-row" id="historyRow"></div></div>
+      <div class="profile-lists">
+        <div class="profile-card" data-view-target="creations"><span data-icon="video"></span><div><b>הסרטונים שלך</b><small>יצירות שהעלית או שמרת</small></div><span data-icon="chevron"></span></div>
+        <div class="profile-card" data-view-target="downloads"><span data-icon="download"></span><div><b>הורדות</b><small>תוכן שהורד מהמכשיר או מהפלטפורמה</small></div><span data-icon="chevron"></span></div>
+        <div class="profile-card" data-view-target="watchlater"><span data-icon="clock"></span><div><b>צפה מאוחר יותר</b><small>רשימה אישית של יצירות שמורות</small></div><span data-icon="chevron"></span></div>
+        <div class="profile-card" data-view-target="liked"><span data-icon="like"></span><div><b>סרטונים שאהבת</b><small>היצירות שסימנת בלייק</small></div><span data-icon="chevron"></span></div>
+        <div class="profile-card" data-view-target="reputation"><span data-icon="star"></span><div><b>המוניטין שלך</b><small><span id="profileRep">0</span> ✦</small></div><span data-icon="chevron"></span></div>
+        <div class="profile-card" id="premiumCard"><span data-icon="spark"></span><div><b>Premium</b><small>הגדרות מתקדמות יופעלו כאשר השירות יהיה מחובר.</small></div><span data-icon="chevron"></span></div>
+      </div>
+    </section>
 
-  <section class="view" data-page="studio">
-    <div class="view-head"><div><h1>סטודיו</h1><p>יצירת טיוטה והגשתה לבדיקה</p></div></div>
-    <div class="studio-shell"><div><h2>יצירה חדשה</h2><p>בחרו סוג מדיה, כתבו פרומפט ושלחו לבדיקה. כרגע נשמרת טיוטה מקומית בלבד.</p><button class="gradient-btn xl" id="studioOpen">פתיחת חלון היצירה ✦</button></div><div class="studio-card"><span>AI STUDIO</span><div>PREVIEW</div></div></div>
-  </section>
-</main>
+    <section class="view" data-page="search">
+      <div class="page-head"><div><h1>חיפוש</h1><p>מצאו יצירות, יוצרים ורשימות הפעלה</p></div></div>
+      <form class="big-search" id="searchForm"><span data-icon="search"></span><input id="searchInput" placeholder="חיפוש" autocomplete="off"><button id="searchMic" type="button"><span data-icon="mic"></span></button></form>
+      <div class="search-tools"><div class="search-suggestions" id="searchHistory"></div><button class="outline-btn" id="searchFiltersBtn">סינון</button></div>
+      <div class="search-filters hidden" id="searchFilters"><button data-filter="new">תאריך העלאה</button><button data-filter="video">סוג: סרטונים</button><button data-filter="shorts">Shorts</button><button data-filter="long">משך</button><button data-filter="all">איפוס</button></div>
+      <div class="content-grid" id="searchGrid"></div>
+    </section>
+
+    <section class="view simple-view" data-page="history"><div class="page-head"><div><h1>היסטוריה</h1><p>יצירות שפתחת במכשיר הזה</p></div></div><div class="content-grid" id="historyGrid"></div></section>
+    <section class="view simple-view" data-page="playlists"><div class="page-head"><div><h1>רשימות הפעלה</h1><p>שמירת תוכן לרשימות אישיות</p></div></div><div class="empty-state" id="playlistEmpty"></div></section>
+    <section class="view simple-view" data-page="liked"><div class="page-head"><div><h1>אהבתי</h1><p>יצירות שסימנת בלייק</p></div></div><div class="content-grid" id="likedGrid"></div></section>
+    <section class="view simple-view" data-page="downloads"><div class="page-head"><div><h1>הורדות</h1><p>קבצים שהורדת מהיצירות המקומיות</p></div></div><div class="content-grid" id="downloadsGrid"></div></section>
+    <section class="view simple-view" data-page="watchlater"><div class="page-head"><div><h1>צפה מאוחר יותר</h1><p>התוכן שבחרת לשמור להמשך</p></div></div><div class="content-grid" id="watchlaterGrid"></div></section>
+
+    <section class="view simple-view" data-page="studio"><div class="page-head"><div><h1>סטודיו</h1><p>יצירת תוכן, טיוטות והגשה לבדיקה</p></div><button class="primary-btn" id="studioOpen"><span data-icon="spark"></span> יצירה חדשה</button></div><div class="studio-dashboard"><div><h2>מרכז היצירה</h2><p>בחרו סוג תוכן, כתבו הנחיה והגישו טיוטה. כאשר המערכת תחובר לשרת, היצירה תעבור תהליך עיבוד ובדיקה אמיתי.</p><div class="studio-stats"><div><b id="studioCount">0</b><small>יצירות</small></div><div><b id="studioDrafts">0</b><small>טיוטות</small></div><div><b id="studioRep">0</b><small>מוניטין</small></div></div></div><div class="studio-preview"><span data-icon="spark"></span><b>AI STUDIO</b><small>WORKSPACE</small></div></div></section>
+
+    <section class="view simple-view" data-page="creators"><div class="page-head"><div><h1>יוצרים</h1><p>יוצרים אמיתיים שיופיעו לאחר חיבור לחשבון השרת</p></div></div><div class="empty-state"><span data-icon="users"></span><b>אין עדיין רשימת יוצרים מהשרת</b><small>לא מוצגים כאן שמות מומצאים.</small></div></section>
+    <section class="view simple-view" data-page="reputation"><div class="page-head"><div><h1>מוניטין</h1><p>התקדמות אישית ורמות</p></div></div><div class="reputation-grid"><div class="rep-card big"><small>המוניטין שלי</small><b id="repValue">0</b><span>✦</span></div><div class="rep-card"><small>רמה</small><b id="repLevel">1</b><span id="repTarget">יעד: 100 ✦</span></div><div class="rep-card"><small>יצירות</small><b id="myCount">0</b><span>בחשבון הזה</span></div></div><div class="rep-progress"><div><b>התקדמות לרמה הבאה</b><span id="repGoal">פתחו חשבון כדי להתחיל</span></div><div class="progress-line"><i id="repProgress"></i></div></div></section>
+  </main>
 </div>
 
-<nav class="mobile-nav"><button data-view="home">⌂<span>בית</span></button><button data-view="discover">◉<span>גלה</span></button><button id="mobileCreate">✦<span>יצירה</span></button><button data-view="following">♡<span>במעקב</span></button><button data-view="profile">☺<span>חשבון</span></button></nav>
+<div class="mobile-bottom">
+  <button data-view="home"><span data-icon="home"></span><small>בית</small></button>
+  <button data-view="shorts"><span data-icon="shorts"></span><small>Shorts</small></button>
+  <button id="mobileCreate" class="mobile-create"><span data-icon="plus"></span><small>יצירה</small></button>
+  <button data-view="following"><span data-icon="subscriptions"></span><small>מינויים</small></button>
+  <button data-view="profile"><span data-icon="user"></span><small>את/ה</small></button>
+</div>
 
-<footer><b>AI פליי</b><span>מערכת תוכן עצמאית</span></footer>
+<div class="mini-player hidden" id="miniPlayer">
+  <div class="mini-thumb" id="miniThumb"></div><div class="mini-copy"><b id="miniTitle">יצירה</b><small id="miniAuthor">יוצר</small></div><button class="icon-btn" id="miniPlay"><span data-icon="play"></span></button><button class="icon-btn" id="miniClose"><span data-icon="close"></span></button>
+</div>
 
-<div class="modal" id="authModal"><div class="modal-card auth"><button class="close" data-close="authModal">×</button><div class="center"><span class="mark big"><i></i><i></i><i></i></span><p class="eyebrow">AI PLAY ACCOUNT</p><h2 id="authTitle">פותחים חשבון</h2><p class="muted" id="authSub">יוצרים, משתפים ובונים מוניטין.</p></div><div class="tabs"><button class="active" data-auth="signup">הרשמה</button><button data-auth="login">כניסה</button></div><label class="field signup-field">שם משתמש<input id="authName" placeholder="שם משתמש"></label><label class="field">אימייל<input id="authEmail" type="email" placeholder="name@example.com"></label><label class="field">סיסמה<input id="authPass" type="password" placeholder="סיסמה"></label><label class="check signup-field"><input id="termsOk" type="checkbox"><span>אני מסכים/ה לתנאי השימוש.</span></label><button class="gradient-btn xl wide" id="authSubmit">פתיחת חשבון</button><div class="verify"><b>אימות מייל</b><small>בגרסה הנוכחית אין שליחת מייל אמיתית עדיין.</small></div></div></div>
+<div class="modal" id="authModal"><div class="modal-card auth-card"><button class="modal-close" data-close="authModal">×</button><div class="auth-mark"><span class="brand-mark large"><span></span><span></span><span></span></span></div><div class="eyebrow">AI PLAY ACCOUNT</div><h2 id="authTitle">פותחים חשבון</h2><p class="muted" id="authSub">יוצרים, משתפים ובונים מוניטין.</p><div class="tabs"><button class="active" data-auth="signup">הרשמה</button><button data-auth="login">כניסה</button></div><label class="field signup-field">שם משתמש<input id="authName" placeholder="שם משתמש"></label><label class="field">אימייל<input id="authEmail" type="email" placeholder="name@example.com"></label><label class="field">סיסמה<input id="authPass" type="password" placeholder="סיסמה"></label><label class="check signup-field"><input id="termsOk" type="checkbox"><span>אני מסכים/ה לתנאי השימוש.</span></label><button class="primary-btn wide" id="authSubmit">פתיחת חשבון</button><div class="verify-note"><b>אימות מייל</b><small>המערכת המקומית אינה שולחת מייל אמיתי עדיין.</small></div></div></div>
 
-<div class="modal" id="studioModal"><div class="modal-card"><button class="close" data-close="studioModal">×</button><p class="eyebrow">AI STUDIO</p><h2>יצירת טיוטה</h2><div class="studio-tabs"><button class="active" data-studio-type="video">▶ וידאו</button><button data-studio-type="image">▧ תמונה</button><button data-studio-type="audio">♫ אודיו</button></div><label class="field"><span>הפרומפט</span><textarea id="prompt" rows="5" placeholder="תארו את היצירה..."></textarea></label><div class="field-grid"><label class="field"><span>מודל</span><select><option>AI Studio Pro</option><option>Fast Creator</option></select></label><label class="field"><span>סגנון</span><select><option>קולנועי</option><option>איור</option><option>נקי</option></select></label></div><button class="gradient-btn xl wide" id="createWork">שמירת טיוטה לבדיקה</button></div></div>
+<div class="modal" id="createModal"><div class="modal-card"><button class="modal-close" data-close="createModal">×</button><div class="eyebrow">CREATE</div><h2>מה תרצו ליצור?</h2><div class="create-options"><button data-create="short"><span data-icon="shorts"></span><b>צור Short</b><small>וידאו אנכי קצר</small></button><button data-create="video"><span data-icon="video"></span><b>העלה סרטון</b><small>קובץ וידאו מהמכשיר</small></button><button data-create="live"><span data-icon="live"></span><b>שידור חי</b><small>הכנה לשידור עתידי</small></button><button data-create="post"><span data-icon="post"></span><b>פוסט</b><small>שתפו טקסט או רעיון</small></button></div></div></div>
 
-<div class="modal" id="uploadModal"><div class="modal-card"><button class="close" data-close="uploadModal">×</button><p class="eyebrow">UPLOAD</p><h2>העלאה</h2><label class="drop"><input id="file" type="file" accept="video/*,image/*"><span>＋</span><b>בחרו קובץ</b><small id="fileName">הקובץ יישמר כרגע מקומית בלבד</small></label><label class="field"><span>שם היצירה</span><input id="uploadTitle" placeholder="שם היצירה"></label><button class="gradient-btn xl wide" id="uploadSubmit">שמירה לתור מקומי</button></div></div>
+<div class="modal" id="studioModal"><div class="modal-card"><button class="modal-close" data-close="studioModal">×</button><div class="eyebrow">AI STUDIO</div><h2>יצירה חדשה</h2><div class="media-tabs"><button class="active" data-studio-type="video">וידאו</button><button data-studio-type="shorts">Shorts</button><button data-studio-type="image">תמונה</button><button data-studio-type="audio">אודיו</button></div><label class="field">הנחיה<textarea id="prompt" rows="5" placeholder="תארו את היצירה שתרצו להכין..."></textarea></label><div class="two-fields"><label class="field">מודל<select id="modelSelect"><option>AI Studio Pro</option><option>Fast Creator</option></select></label><label class="field">סגנון<select id="styleSelect"><option>קולנועי</option><option>איור</option><option>נקי</option><option>אנימציה</option></select></label></div><button class="primary-btn wide" id="createWork">שמירת טיוטה</button></div></div>
 
-<div class="modal" id="searchModal"><div class="modal-card"><button class="close" data-close="searchModal">×</button><p class="eyebrow">SEARCH</p><h2>חיפוש</h2><input class="search-input" id="searchInput" placeholder="חפש יצירה או יוצר"><div id="searchResults" class="search-results"></div></div></div>
-<div id="toast" class="toast"></div>
+<div class="modal" id="uploadModal"><div class="modal-card"><button class="modal-close" data-close="uploadModal">×</button><div class="eyebrow">UPLOAD</div><h2>העלאת תוכן</h2><label class="drop-zone"><input id="file" type="file" accept="video/*,image/*,audio/*"><span data-icon="upload"></span><b>בחרו קובץ</b><small id="fileName">עד 12MB לשמירה מקומית</small></label><label class="field">שם היצירה<input id="uploadTitle" placeholder="שם היצירה"></label><button class="primary-btn wide" id="uploadSubmit">הוספה לספרייה</button></div></div>
+
+<div class="modal" id="settingsModal"><div class="modal-card"><button class="modal-close" data-close="settingsModal">×</button><div class="eyebrow">SETTINGS</div><h2>הגדרות נגן</h2><div class="settings-list"><label><span>ניגון אוטומטי</span><input id="settingAutoplay" type="checkbox" checked></label><label><span>מצב כהה</span><input id="settingDark" type="checkbox" checked></label><button class="outline-btn" id="resetLocal">איפוס נתונים מקומיים</button></div></div></div>
+
+<div class="modal" id="searchFiltersModal"><div class="modal-card"><button class="modal-close" data-close="searchFiltersModal">×</button><div class="eyebrow">FILTERS</div><h2>סינון תוצאות</h2><div class="filter-grid"><button data-filter="new">תאריך העלאה</button><button data-filter="video">סרטונים</button><button data-filter="image">תמונות</button><button data-filter="shorts">Shorts</button><button data-filter="long">משך</button><button data-filter="all">הכול</button></div></div></div>
+
+<div class="toast" id="toast"></div>
 <script src="app.js"></script>
-</body></html>
+</body>
+</html>
