@@ -123,3 +123,27 @@ svg{width:21px;height:21px;display:block;fill:currentColor}
 @media(max-width:700px){
   .topbar{height:58px;padding:0 8px;gap:5px}.app-shell{top:58px}.sidebar{display:none}.main{right:0;padding:0 10px 80px}.brand{min-width:auto}.brand-text{font-size:17px}.brand-mark{width:32px;height:29px}.searchbar{position:absolute;top:64px;right:10px;left:10px;max-width:none;height:40px}.topbar{margin-bottom:47px}.top-actions{margin-right:auto}.account-copy,.create-top{display:none}.only-desktop{display:none}.mobile-page-head,.page-head{padding-top:22px}.page-head h1,.mobile-page-head h1{font-size:23px}.content-grid{grid-template-columns:1fr;gap:23px}.shorts-row{grid-template-columns:repeat(2,1fr)}.mobile-bottom{position:fixed;z-index:160;display:flex;left:0;right:0;bottom:0;height:68px;padding-bottom:env(safe-area-inset-bottom);background:rgba(13,16,20,.97);border-top:1px solid var(--line);justify-content:space-around}.mobile-bottom button{position:relative;width:20%;border:0;background:transparent;color:#8d98a3;display:grid;place-items:center;align-content:center;gap:3px}.mobile-bottom button svg{width:21px;height:21px}.mobile-bottom button small{font-size:8px}.mobile-bottom button.active{color:#fff}.mobile-create{margin-top:-20px;height:48px!important;width:48px!important;border-radius:50%!important;background:linear-gradient(135deg,var(--brand),var(--brand-2))!important;color:#fff!important;box-shadow:0 9px 24px rgba(92,124,255,.35)}.mobile-create small{position:absolute;top:50px;color:#8d98a3;white-space:nowrap}.watch-layout{padding-top:0}.player-shell{border-radius:0;margin:0 -10px;width:calc(100% + 20px)}.watch-info{padding-top:13px}.watch-title-toggle h1{font-size:17px}.action-row{margin:0 -2px}.profile-head{padding-top:21px;flex-wrap:wrap}.profile-avatar{width:58px;height:58px}.profile-copy{margin-right:auto}.profile-head-actions{width:100%;justify-content:flex-start}.profile-lists{grid-template-columns:1fr}.mini-row{grid-template-columns:repeat(2,minmax(0,1fr))}.studio-dashboard{grid-template-columns:1fr;padding:20px}.studio-preview{min-height:180px}.reputation-grid{grid-template-columns:1fr}.reputation-grid .rep-card{padding:15px}.two-fields{grid-template-columns:1fr}.create-options{grid-template-columns:1fr 1fr}.shorts-stage{width:100vw;height:calc(100vh - 135px);border-radius:0}.mini-player{left:8px;right:8px;bottom:71px}.mini-thumb{width:70px}.toast{left:12px;right:12px;text-align:center}
 }
+
+body.light{--bg:#f8fafc;--surface:#fff;--surface-2:#f0f3f7;--surface-3:#e5eaf0;--line:#d8dee5;--text:#11161b;--muted:#69747f;--brand:#4f68e8;--brand-2:#12a99e;--brand-soft:#e7ecff;--shadow:0 12px 34px rgba(24,34,45,.12)}
+body.light .topbar{background:rgba(248,250,252,.96)}
+body.light .sidebar{background:#fff}
+body.light .nav-item{color:#596571}
+body.light .nav-item:hover{color:#11161b}
+body.light .nav-item.active{background:#e9edff;color:#1c2b59}
+body.light .searchbar,body.light .big-search{background:#fff;border-color:#cfd6de}
+body.light .searchbar input,body.light .big-search input,body.light .field input,body.light .field textarea,body.light .field select{color:#11161b}
+body.light .chip{background:#fff;color:#4b5661;border-color:#d4dae1}
+body.light .chip.active{background:#171c22;color:#fff;border-color:#171c22}
+body.light .thumb{background:linear-gradient(135deg,#e5ebfb,#eef5f3)}
+body.light .player-shell{background:#06080a}
+body.light .profile-card,body.light .panel,body.light .rep-card,body.light .comments-preview{background:#fff}
+body.light .empty-state{background:linear-gradient(180deg,#fff,#f7f9fb)}
+body.light .modal{background:rgba(15,20,26,.52)}
+body.light .modal-card{background:#fff;border-color:#d6dde5}
+body.light .tabs,body.light .media-tabs{background:#eef1f4;border-color:#dce2e8}
+body.light .tabs button,body.light .media-tabs button{color:#68737e}
+body.light .tabs button.active,body.light .media-tabs button.active{background:#171c22;color:#fff}
+body.light .verify-note{background:#ecfaf6;border-color:#b9e7dc}
+body.light .verify-note b{color:#168977}
+body.light .drop-zone{background:#f7f9fb;border-color:#bbc5ce}
+body.light .settings-list label{background:#fff;border-color:#dce2e8}
