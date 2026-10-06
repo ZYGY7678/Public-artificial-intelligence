@@ -309,3 +309,21 @@ body.light .mini-copy small{color:#5f6368}
 body.light .admin-security-banner{background:#effaf5;border-color:#c4e9dc}body.light .admin-security-banner small{color:#5a6a64}
 body.light .admin-tabs button.active{background:#0f0f0f;color:#fff}
 body.light .admin-stat,body.light .admin-quick,body.light .admin-health,body.light .admin-form,body.light .admin-role-info,body.light .admin-setting,body.light .admin-staff-row,body.light .admin-review-card,body.light .admin-table-wrap{background:#fff}
+
+/* Final visual and upload controls */
+.brand-logo{display:block;width:34px!important;height:34px!important;max-width:none!important;max-height:none!important;object-fit:contain!important;object-position:center!important;flex:0 0 auto}
+.logo-box{width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important;display:grid!important;place-items:center!important;overflow:visible!important}
+.brand-logo-large{width:48px!important;height:48px!important}
+.upload-card{max-width:560px}
+.upload-limit-box{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 13px;border:1px solid var(--line);background:var(--surface);border-radius:12px;margin-bottom:12px}
+.upload-limit-box>div{display:grid;gap:3px}.upload-limit-box b{font-size:10px}.upload-limit-box small{font-size:9px;color:var(--muted)}.upload-tier-dot{width:10px;height:10px;border-radius:50%;background:#9aa0a6;box-shadow:0 0 0 5px rgba(154,160,166,.08)}.upload-tier-dot.premium{background:#f6c344;box-shadow:0 0 0 5px rgba(246,195,68,.12)}
+.upload-zone{min-height:190px!important;border-style:dashed!important;cursor:pointer}
+.upload-circle{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;box-shadow:0 12px 30px rgba(0,0,0,.2);transition:.18s}
+.upload-zone:hover .upload-circle{transform:translateY(-2px) scale(1.03)}
+.upload-circle svg{width:28px;height:28px}.upload-zone>b{font-size:13px}.upload-zone>small{font-size:9px;color:var(--muted)}
+.upload-progress{position:relative;margin:12px 0;height:34px;border:1px solid var(--line);border-radius:10px;background:var(--surface);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.upload-progress.hidden{display:none}.upload-progress i{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08));transition:width .2s}.upload-progress span{position:relative;z-index:1;font-size:9px}
+.settings-section-title{font-size:10px;font-weight:800;margin:16px 0 8px;color:var(--muted)}
+.settings-list .select-setting{gap:10px}.settings-list .select-setting select{min-width:120px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);border-radius:8px;padding:7px}
+.account-tier-card{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--surface);border-radius:11px;padding:12px;margin:8px 0 12px}.tier-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:linear-gradient(135deg,#2b315d,#1d3f36);color:#f5d46b}.account-tier-card div{display:grid;gap:3px}.account-tier-card b{font-size:10px}.account-tier-card small{font-size:8px;color:var(--muted)}
+@media(max-width:700px){.logo-box{width:31px!important;height:31px!important;min-width:31px!important;min-height:31px!important}.brand-logo{width:31px!important;height:31px!important}.brand-logo-large{width:44px!important;height:44px!important}}
