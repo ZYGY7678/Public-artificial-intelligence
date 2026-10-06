@@ -510,7 +510,7 @@ async function signInServer(email,password){
 
 async function signInWithGoogle(){
   if(!sb) throw new Error("שירות הנתונים אינו זמין כרגע");
-  const redirectTo=window.location.origin+window.location.pathname;
+  const redirectTo="https://ai-play.onrender.com/";
   const r=await sb.auth.signInWithOAuth({provider:"google",options:{redirectTo}});
   if(r.error) throw r.error;
 }
