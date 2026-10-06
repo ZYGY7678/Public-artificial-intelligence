@@ -3,7 +3,7 @@ const $$ = (s, root=document) => Array.from(root.querySelectorAll(s));
 
 const KEY = "aiplay_v4";
 const SUPABASE_URL = "https://ikgyozgzhjbdmopsaflp.supabase.co";
-const SUPABASE_KEY = "sb_publishable_ezliwatqX0wz_-OhgkCH8";
+const SUPABASE_KEY = "sb_publishable_ezliwatqX0wz_-ScmiWzHw_-OhgkCH8";
 const sb = window.supabase && typeof window.supabase.createClient === "function"
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
   : null;
