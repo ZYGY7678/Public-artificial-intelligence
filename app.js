@@ -996,7 +996,7 @@ async function loadAdminModeration(){
     mountIcons();
   }catch(e){ console.error(e); $("#adminModerationList").innerHTML='<div class="empty-state"><b>לא ניתן לטעון את תור הפיקוח</b><small>'+esc(e?.message||"שגיאה")+'</small></div>'; }
 }
-async async function loadAdminUsers(search){
+async function loadAdminUsers(search){
   if(!adminCan("admin")){ $("#adminUsersList").innerHTML='<tr><td colspan="6">אין הרשאה לניהול משתמשים.</td></tr>'; return; }
   try{
     const rows=await adminRpc("admin_list_users",{p_search:search||""});
@@ -1083,7 +1083,7 @@ async function adminRemoveStaff(email){
   catch(e){console.error(e);toast("לא ניתן להסיר מהצוות: "+(e?.message||"שגיאה"));}
 }
 function handleAdminClick(e){
-  const target=e.target.closest("[data-admin-tab],[data-admin-action],[data-admin-status],[data-admin-user-action],[data-admin-staff-remove]");
+  const target=e.target.closest("[data-admin-tab],[data-admin-action],[data-admin-status],[data-admin-user-action],[data-admin-tier],[data-admin-staff-remove]");
   if(!target)return;
   if(target.dataset.adminTab){
     e.preventDefault(); showAdminTab(target.dataset.adminTab); return;
