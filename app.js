@@ -508,11 +508,47 @@ async function signInServer(email,password){
   await loadServerState(); closeModal("authModal"); toast("התחברתם בהצלחה");
 }
 
+const GOOGLE_CLIENT_ID="660683262491-mnonmgjjebdefstt1rjat9s7tfjce1pf.apps.googleusercontent.com";
+let googleIdentityReady=false;
+
+async function handleGoogleCredential(response){
+  if(!sb) throw new Error("שירות הנתונים אינו זמין כרגע");
+  if(!response?.credential) throw new Error("Google לא החזיר אסימון התחברות");
+  const r=await sb.auth.signInWithIdToken({
+    provider:"google",
+    token:response.credential
+  });
+  if(r.error) throw r.error;
+  await loadServerState();
+  closeModal("authModal");
+  toast("התחברתם בהצלחה עם Google");
+}
+window.handleSignInWithGoogle=handleGoogleCredential;
+
+function initGoogleIdentity(){
+  if(!window.google?.accounts?.id) return false;
+  google.accounts.id.initialize({
+    client_id:GOOGLE_CLIENT_ID,
+    callback:window.handleSignInWithGoogle,
+    ux_mode:"popup",
+    use_fedcm_for_prompt:true,
+    auto_select:false,
+    cancel_on_tap_outside:true
+  });
+  googleIdentityReady=true;
+  return true;
+}
+
 async function signInWithGoogle(){
   if(!sb) throw new Error("שירות הנתונים אינו זמין כרגע");
-  const redirectTo="https://ai-play.onrender.com/";
-  const r=await sb.auth.signInWithOAuth({provider:"google",options:{redirectTo}});
-  if(r.error) throw r.error;
+  if(!googleIdentityReady && !initGoogleIdentity()){
+    throw new Error("רכיב ההתחברות של Google עדיין נטען. נסו שוב בעוד רגע");
+  }
+  google.accounts.id.prompt((notification)=>{
+    if(notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()){
+      toast("Google לא הציג את חלון ההתחברות. נסו שוב.");
+    }
+  });
 }
 function renderShorts(startId){
   const arr=actualItems().filter(x=>x.type==="shorts" || x.short===true);
@@ -657,8 +693,8 @@ function setup(){
   if(window.__aiplayV4Ready) return;
   window.__aiplayV4Ready=true;
   document.addEventListener("click",handleClick,false);
+  initGoogleIdentity();
 
-  $("#googleAuthBtn")?.addEventListener("click",()=>signInWithGoogle().catch(e=>{console.error(e);toast("שגיאה בכניסה עם Google: "+(e?.message||"לא ניתן להתחבר"));}));
 
   document.addEventListener("keydown",e=>{
     if(e.key==="Escape") $$(".modal.open").forEach(m=>m.classList.remove("open"));
