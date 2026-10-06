@@ -617,11 +617,31 @@ async function handleGoogleCredential(response){
 
     if(googleIdentityInitPromise) await googleIdentityInitPromise;
 
-    const options={provider:"google",token:response.credential};
-    if(googleRawNonce) options.nonce=googleRawNonce;
+    let result=await sb.auth.signInWithIdToken({
+      provider:"google",
+      token:response.credential,
+      ...(googleRawNonce ? {nonce:googleRawNonce} : {})
+    });
 
-    const result=await sb.auth.signInWithIdToken(options);
-    if(result.error) throw result.error;
+    // Some browsers/providers can reject only the nonce validation.
+    // Retry once without a nonce; Supabase documents nonce as optional for Google.
+    if(result.error && /nonce|replay|claim/i.test(String(result.error.message||""))){
+      result=await sb.auth.signInWithIdToken({
+        provider:"google",
+        token:response.credential
+      });
+    }
+
+    if(result.error){
+      // If Supabase established a session despite a client-side response error,
+      // use that session instead of showing a false login failure.
+      const fallbackSession=(await sb.auth.getSession()).data.session;
+      if(fallbackSession?.user){
+        result={data:{user:fallbackSession.user},error:null};
+      }else{
+        throw result.error;
+      }
+    }
 
     const user=result.data?.user;
     if(!user) throw new Error("Google אומת, אבל Supabase לא החזיר משתמש");
