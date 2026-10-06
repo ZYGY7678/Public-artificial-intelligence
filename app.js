@@ -23,6 +23,8 @@ let currentFilter = "all";
 let searchFilter = "all";
 let serverReady = false;
 let authMode = "signup";
+let adminContext = {is_staff:false,role:"",email:"",display_name:"",permissions:[]};
+let adminTab = "overview";
 
 function loadState(){
   let saved = null;
@@ -171,6 +173,7 @@ function mountIcons(){
 }
 
 function renderUser(){
+  $(".admin-only").forEach(el=>el.classList.toggle("hidden", !adminContext?.is_staff));
   const u = state.user, name = u?.name || "אורח";
   $("#accountAvatar") && ($("#accountAvatar").textContent = initials(name));
   $("#accountName") && ($("#accountName").textContent = name);
@@ -263,6 +266,7 @@ function switchView(name){
   else if(name==="studio") renderUser();
   else if(name==="reputation") renderUser();
   else if(name==="shorts") renderShorts();
+  else if(name==="admin"){ if(adminContext?.is_staff) showAdminTab(adminTab); else { toast("אין הרשאה למרכז הניהול"); switchView("home"); return; } }
   const main = $("#main"); if(main) main.scrollTop = 0;
 }
 function switchAuth(mode){
@@ -481,6 +485,7 @@ async function loadServerState(){
       saveState();
       renderUser();
       closeModal("authModal");
+      syncAdminContext().catch(()=>{});
 
       // Profile/database data is secondary. A failure here must not undo the login UI.
       try{
@@ -777,6 +782,13 @@ function setup(){
     if(e.key==="Escape") $$(".modal.open").forEach(m=>m.classList.remove("open"));
   });
 
+  $("#adminStaffForm")?.addEventListener("submit",submitAdminStaff);
+  $("#adminUserSearch")?.addEventListener("input",e=>{
+    clearTimeout(window.__aiplayAdminSearchTimer);
+    window.__aiplayAdminSearchTimer=setTimeout(()=>loadAdminUsers(e.target.value||""),250);
+  });
+  document.addEventListener("click",handleAdminClick,false);
+
   $("#topSearchForm")?.addEventListener("submit",e=>{
     e.preventDefault();
     const q=$("#topSearch")?.value.trim()||"";
@@ -828,9 +840,179 @@ function applySettings(){
   if($("#settingAutoplay"))$("#settingAutoplay").checked=state.settings.autoplay;
   if($("#settingDark"))$("#settingDark").checked=state.settings.dark;
 }
-function boot(){
+async function syncAdminContext(){
+  if(!sb || !state.user){
+    adminContext={is_staff:false,role:"",email:"",display_name:"",permissions:[]};
+    renderUser();
+    return adminContext;
+  }
   try{
-    mountIcons(); setup(); applySettings(); renderUser(); renderHome(); renderFollowing("today"); renderHistory(); renderSimple(); renderSearch(); switchView("home");
+    const r=await sb.rpc("admin_current_context");
+    if(r.error) throw r.error;
+    adminContext=r.data || {is_staff:false,role:"",email:state.user.email||"",display_name:"",permissions:[]};
+    renderUser();
+    if(adminContext.is_staff){
+      $("#adminRole") && ($("#adminRole").textContent=adminRoleLabel(adminContext.role));
+      $("#adminActor") && ($("#adminActor").textContent=adminContext.email||state.user.email||"");
+    }
+  }catch(e){
+    adminContext={is_staff:false,role:"",email:"",display_name:"",permissions:[]};
+    renderUser();
+    console.warn("[AI Play] admin context",e);
+  }
+  return adminContext;
+}
+
+function adminRoleLabel(role){
+  return ({owner:"מנהל ראשי",admin:"מנהל",moderator:"צוות פיקוח",reviewer:"בודק"})[role] || "משתמש";
+}
+function adminRank(role){ return ({owner:4,admin:3,moderator:2,reviewer:1})[role] || 0; }
+function adminCan(role){ return adminRank(adminContext.role)>=adminRank(role); }
+function adminFmtDate(v){ try{return new Date(v).toLocaleString("he-IL",{dateStyle:"short",timeStyle:"short"});}catch(e){return "—";} }
+async function adminRpc(name,args){
+  if(!sb) throw new Error("שירות הנתונים אינו זמין");
+  if(!adminContext?.is_staff) throw new Error("אין הרשאה");
+  const r=await sb.rpc(name,args||{});
+  if(r.error) throw r.error;
+  return r.data;
+}
+function showAdminTab(tab){
+  adminTab=tab||"overview"; currentView="admin";
+  $(".admin-tabs [data-admin-tab]").forEach(b=>b.classList.toggle("active",b.dataset.adminTab===adminTab));
+  $(".admin-quick[data-admin-tab]").forEach(b=>b.classList.toggle("active",b.dataset.adminTab===adminTab));
+  $(".admin-pane").forEach(p=>p.classList.toggle("active",p.dataset.adminPane===adminTab));
+  if(adminTab==="overview") loadAdminOverview();
+  if(adminTab==="moderation") loadAdminModeration();
+  if(adminTab==="users") loadAdminUsers($("#adminUserSearch")?.value||"");
+  if(adminTab==="staff") loadAdminStaff();
+  if(adminTab==="settings") loadAdminSettings();
+  if(adminTab==="audit") loadAdminAudit();
+}
+async function loadAdminOverview(){
+  try{
+    const d=await adminRpc("admin_dashboard");
+    $("#adminUsersCount").textContent=Number(d?.users||0).toLocaleString("he-IL");
+    $("#adminPendingCount").textContent=Number(d?.pending||0).toLocaleString("he-IL");
+    $("#adminApprovedCount").textContent=Number(d?.approved||0).toLocaleString("he-IL");
+    $("#adminRejectedCount").textContent=Number(d?.rejected||0).toLocaleString("he-IL");
+    $("#adminStaffCount").textContent=Number(d?.staff||0).toLocaleString("he-IL");
+    $("#adminViewsCount").textContent=Number(d?.views||0).toLocaleString("he-IL");
+    $("#adminCommentsCount").textContent=Number(d?.comments||0).toLocaleString("he-IL");
+    $("#adminUploadsCount").textContent=Number(d?.uploads||0).toLocaleString("he-IL");
+    $("#adminQuickPending").textContent=Number(d?.pending||0)+" ממתינים";
+    $("#moderationCount").textContent=Number(d?.pending||0);
+  }catch(e){ console.error(e); toast("לא ניתן לטעון את נתוני הניהול"); }
+}
+async function loadAdminModeration(){
+  try{
+    const rows=await adminRpc("admin_list_pending_content");
+    const arr=Array.isArray(rows)?rows:[];
+    $("#moderationCount").textContent=arr.length;
+    $("#adminModerationList").innerHTML=arr.length?arr.map(x=>
+      '<article class="admin-review-card" data-admin-creation="'+esc(x.id)+'"><div class="admin-review-main"><div class="admin-review-type">'+esc(kindOf({type:x.media_type}))+'</div><h3>'+esc(x.title||"ללא שם")+'</h3><p>'+esc(x.description||"ללא תיאור")+'</p><small>'+esc(x.author||"יוצר")+' · '+adminFmtDate(x.created_at)+'</small></div><div class="admin-review-actions"><button class="primary-btn" data-admin-status="approved" data-admin-id="'+esc(x.id)+'">אישור לפרסום</button><button class="danger-btn" data-admin-status="rejected" data-admin-id="'+esc(x.id)+'">דחייה</button></div></article>'
+    ).join(""):'<div class="empty-state"><span data-icon="spark"></span><b>אין פריטים שממתינים לבדיקה</b><small>תוכן חדש יופיע כאן כאשר נדרש אישור.</small></div>';
+    mountIcons();
+  }catch(e){ console.error(e); $("#adminModerationList").innerHTML='<div class="empty-state"><b>לא ניתן לטעון את תור הפיקוח</b><small>'+esc(e?.message||"שגיאה")+'</small></div>'; }
+}
+async function loadAdminUsers(search){
+  if(!adminCan("admin")){ $("#adminUsersList").innerHTML='<tr><td colspan="6">אין הרשאה לניהול משתמשים.</td></tr>'; return; }
+  try{
+    const rows=await adminRpc("admin_list_users",{p_search:search||""});
+    const arr=Array.isArray(rows)?rows:[];
+    $("#adminUsersList").innerHTML=arr.length?arr.map(u=>{
+      const suspended=!!u.banned_until && new Date(u.banned_until)>new Date();
+      const verified=u.email_confirmed;
+      return '<tr><td><div class="admin-user-cell"><span class="admin-user-avatar">'+esc(initials(u.display_name||u.email))+'</span><div><b>'+esc(u.display_name||"משתמש")+'</b><small>'+esc(u.email||"")+'</small></div></div></td><td><span class="status-pill '+(verified?"good":"warn")+'">'+(verified?"מאומת":"לא אומת")+'</span></td><td>'+adminFmtDate(u.created_at)+'</td><td>'+adminFmtDate(u.last_sign_in_at)+'</td><td>'+Number(u.reputation||0).toLocaleString("he-IL")+' ✦</td><td><button class="tiny-admin-btn '+(suspended?"good":"danger")+'" data-admin-user-action="'+(suspended?"unsuspend":"suspend")+'" data-admin-user-id="'+esc(u.id)+'">'+(suspended?"הפעל":"השעיה ל־30 יום")+'</button></td></tr>';
+    }).join(""):'<tr><td colspan="6"><div class="empty-state"><b>לא נמצאו משתמשים</b></div></td></tr>';
+  }catch(e){ console.error(e); $("#adminUsersList").innerHTML='<tr><td colspan="6">שגיאה בטעינת משתמשים: '+esc(e?.message||"לא ידוע")+'</td></tr>'; }
+}
+async function loadAdminStaff(){
+  try{
+    const rows=await adminRpc("admin_list_staff");
+    const arr=Array.isArray(rows)?rows:[];
+    $("#adminStaffCountLabel").textContent=arr.length+" חברים";
+    $("#adminStaffList").innerHTML=arr.length?arr.map(x=>'<div class="admin-staff-row"><div class="admin-staff-avatar">'+esc(initials(x.display_name||x.email))+'</div><div class="admin-staff-copy"><b>'+esc(x.display_name||x.email)+'</b><small>'+esc(x.email)+' · '+adminRoleLabel(x.role)+(x.last_sign_in_at?" · כניסה "+adminFmtDate(x.last_sign_in_at):"")+'</small></div><span class="role-pill role-'+esc(x.role)+'">'+esc(adminRoleLabel(x.role))+'</span>'+(x.role!=="owner"&&x.email!==adminContext.email?'<button class="tiny-admin-btn danger" data-admin-staff-remove="'+esc(x.email)+'">הסר</button>':'<span class="admin-lock">🔒</span>')+'</div>').join(""):'<div class="empty-state"><b>אין חברי צוות</b></div>';
+  }catch(e){ console.error(e); $("#adminStaffList").innerHTML='<div class="empty-state"><b>שגיאה בטעינת הצוות</b><small>'+esc(e?.message||"לא ידוע")+'</small></div>'; }
+}
+async function submitAdminStaff(e){
+  e.preventDefault();
+  if(!adminCan("admin")){toast("אין הרשאה לניהול צוות");return;}
+  const email=$("#adminStaffEmail")?.value.trim()||""; const name=$("#adminStaffName")?.value.trim()||""; const role=$("#adminStaffRole")?.value||"moderator";
+  if(!email.includes("@")){toast("הכניסו אימייל תקין");return;}
+  if(role==="owner" && adminContext.role!=="owner"){toast("רק מנהל ראשי יכול להוסיף מנהל ראשי");return;}
+  const btn=e.target.querySelector("button[type=submit]"); if(btn)btn.disabled=true;
+  try{ await adminRpc("admin_upsert_staff",{p_email:email,p_role:role,p_display_name:name}); e.target.reset(); toast("התפקיד נשמר בהצלחה"); await loadAdminStaff(); await loadAdminOverview(); }
+  catch(err){console.error(err);toast("לא ניתן להוסיף לצוות: "+(err?.message||"שגיאה"));}
+  finally{if(btn)btn.disabled=false;}
+}
+async function loadAdminSettings(){
+  if(!adminCan("admin")) return;
+  try{
+    const s=await adminRpc("admin_get_settings");
+    const map={maintenance_mode:"adminSetMaintenance",allow_signups:"adminSetSignups",require_moderation:"adminSetModeration",public_uploads:"adminSetUploads",comments_enabled:"adminSetComments",notifications_enabled:"adminSetNotifications"};
+    Object.entries(map).forEach(([k,id])=>{if($("#"+id))$("#"+id).checked=!!s?.[k];});
+    if($("#adminSetMaxUpload"))$("#adminSetMaxUpload").value=Number(s?.max_upload_mb||500);
+    if($("#adminSetAnnouncement"))$("#adminSetAnnouncement").value=typeof s?.announcement==="string"?s.announcement:"";
+  }catch(e){console.error(e);toast("לא ניתן לטעון את הגדרות המערכת");}
+}
+async function saveAdminSetting(key,value){
+  try{await adminRpc("admin_set_setting",{p_key:key,p_value:value});toast("ההגדרה נשמרה");}
+  catch(e){console.error(e);toast("לא ניתן לשמור את ההגדרה: "+(e?.message||"שגיאה"));}
+}
+async function saveAdminSettings(){
+  if(!adminCan("admin")){toast("אין הרשאה להגדרות");return;}
+  const pairs=[
+    ["maintenance_mode",!!$("#adminSetMaintenance")?.checked],["allow_signups",!!$("#adminSetSignups")?.checked],
+    ["require_moderation",!!$("#adminSetModeration")?.checked],["public_uploads",!!$("#adminSetUploads")?.checked],
+    ["comments_enabled",!!$("#adminSetComments")?.checked],["notifications_enabled",!!$("#adminSetNotifications")?.checked],
+    ["max_upload_mb",Math.max(1,Number($("#adminSetMaxUpload")?.value||500))],["announcement",String($("#adminSetAnnouncement")?.value||"")]
+  ];
+  try{for(const [k,v] of pairs) await adminRpc("admin_set_setting",{p_key:k,p_value:v});toast("כל הגדרות המערכת נשמרו");await loadAdminSettings();}
+  catch(e){console.error(e);toast("שגיאה בשמירת ההגדרות: "+(e?.message||"לא ידוע"));}
+}
+async function loadAdminAudit(){
+  if(!adminCan("admin")) return;
+  try{
+    const rows=await adminRpc("admin_get_audit",{p_limit:150}); const arr=Array.isArray(rows)?rows:[];
+    $("#adminAuditList").innerHTML=arr.length?arr.map(x=>'<tr><td>'+adminFmtDate(x.created_at)+'</td><td>'+esc(x.actor_email||"מערכת")+'</td><td><b>'+esc(x.action||"")+'</b></td><td>'+esc((x.target_type||"")+" / "+(x.target_id||""))+'</td><td><code>'+esc(JSON.stringify(x.metadata||{}))+'</code></td></tr>').join(""):'<tr><td colspan="5">אין עדיין פעולות ביומן.</td></tr>';
+  }catch(e){console.error(e);$("#adminAuditList").innerHTML='<tr><td colspan="5">שגיאה בטעינת היומן: '+esc(e?.message||"לא ידוע")+'</td></tr>';}
+}
+async function adminSetCreationStatus(id,status){
+  try{
+    let reason=""; if(status==="rejected"){reason=prompt("סיבת הדחייה (אפשר להשאיר ריק):","")||"";}
+    await adminRpc("admin_set_creation_status",{p_creation_id:id,p_status:status,p_reason:reason});
+    toast(status==="approved"?"היצירה אושרה לפרסום":"היצירה נדחתה"); await loadAdminModeration(); await loadAdminOverview();
+  }catch(e){console.error(e);toast("לא ניתן לעדכן את היצירה: "+(e?.message||"שגיאה"));}
+}
+async function adminToggleUser(id,action){
+  try{const suspend=action==="suspend"; if(suspend&&!confirm("להשעות את המשתמש ל־30 יום?"))return; await adminRpc("admin_set_user_suspension",{p_user_id:id,p_suspend:suspend});toast(suspend?"המשתמש הושעה ל־30 יום":"החשבון הופעל מחדש");await loadAdminUsers($("#adminUserSearch")?.value||"");await loadAdminOverview();}
+  catch(e){console.error(e);toast("לא ניתן לשנות את מצב המשתמש: "+(e?.message||"שגיאה"));}
+}
+async function adminRemoveStaff(email){
+  if(!confirm("להסיר את "+email+" מהצוות?")) return;
+  try{await adminRpc("admin_remove_staff",{p_email:email});toast("המשתמש הוסר מהצוות");await loadAdminStaff();await loadAdminOverview();}
+  catch(e){console.error(e);toast("לא ניתן להסיר מהצוות: "+(e?.message||"שגיאה"));}
+}
+function handleAdminClick(e){
+  const target=e.target.closest("[data-admin-tab],[data-admin-action],[data-admin-status],[data-admin-user-action],[data-admin-staff-remove]");
+  if(!target)return;
+  if(target.dataset.adminTab){
+    e.preventDefault(); showAdminTab(target.dataset.adminTab); return;
+  }
+  if(target.dataset.adminStatus){e.preventDefault();adminSetCreationStatus(target.dataset.adminId,target.dataset.adminStatus);return;}
+  if(target.dataset.adminUserAction){e.preventDefault();adminToggleUser(target.dataset.adminUserId,target.dataset.adminUserAction);return;}
+  if(target.dataset.adminStaffRemove){e.preventDefault();adminRemoveStaff(target.dataset.adminStaffRemove);return;}
+  if(target.dataset.adminAction==="refresh"){e.preventDefault();showAdminTab(adminTab);toast("הנתונים עודכנו");return;}
+  if(target.dataset.adminAction==="refresh-users"){e.preventDefault();loadAdminUsers($("#adminUserSearch")?.value||"");return;}
+  if(target.dataset.adminAction==="refresh-audit"){e.preventDefault();loadAdminAudit();return;}
+  if(target.dataset.adminAction==="save-settings"){e.preventDefault();saveAdminSettings();return;}
+  if(target.dataset.adminAction==="focus-staff"){e.preventDefault();showAdminTab("staff");return;}
+}
+
+async function boot(){
+  try{
+    mountIcons(); setup(); applySettings(); renderUser();
+    syncAdminContext().catch(()=>{}); renderHome(); renderFollowing("today"); renderHistory(); renderSimple(); renderSearch(); switchView("home");
     window.__aiplayBooted=true;
   }catch(e){
     console.error("[AI Play] boot",e);
@@ -854,6 +1036,7 @@ if(sb){
       saveState();
       renderUser();
       closeModal("authModal");
+      syncAdminContext().catch(()=>{});
     }else if(event==="SIGNED_OUT"){
       state.user=null;
       state.rep=0;
@@ -863,6 +1046,7 @@ if(sb){
       state.subscribed=[];
       saveState();
       renderUser();
+      syncAdminContext().catch(()=>{});
     }
     setTimeout(()=>loadServerState(),0);
   });
