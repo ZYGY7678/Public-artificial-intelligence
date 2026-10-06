@@ -470,30 +470,73 @@ async function loadServerState(){
   try{
     const session=(await sb.auth.getSession()).data.session;
     if(session?.user){
-      const p=await sb.from("profiles").select("*").eq("id",session.user.id).maybeSingle();
-      state.user={id:session.user.id,name:p.data?.display_name||session.user.email?.split("@")[0]||"משתמש",email:session.user.email||""};
-      state.rep=Number(p.data?.reputation||0);
-      const rows=await sb.from("creations").select("*,profiles(display_name)").order("created_at",{ascending:false});
-      state.items=await hydrateMedia((rows.data||[]).map(dbItem));
-      const likes=await sb.from("creation_likes").select("creation_id").eq("user_id",session.user.id);
-      const dls=await sb.from("downloads").select("creation_id").eq("user_id",session.user.id);
-      const fol=await sb.from("follows").select("following_id,profiles!follows_following_id_fkey(display_name)").eq("follower_id",session.user.id);
-      state.liked=(likes.data||[]).map(x=>x.creation_id);
-      state.downloads=(dls.data||[]).map(x=>x.creation_id);
-      state.following=(fol.data||[]).map(x=>x.profiles?.display_name).filter(Boolean);
-      state.subscribed=state.following.slice();
+      const user=session.user;
+      // Update the UI immediately from the authenticated Supabase user.
+      state.user={
+        id:user.id,
+        name:user.user_metadata?.display_name || user.user_metadata?.name ||
+             user.email?.split("@")[0] || "משתמש",
+        email:user.email || ""
+      };
+      saveState();
+      renderUser();
+      closeModal("authModal");
+
+      // Profile/database data is secondary. A failure here must not undo the login UI.
+      try{
+        const p=await sb.from("profiles").select("*").eq("id",user.id).maybeSingle();
+        if(p.data){
+          state.user.name=p.data.display_name || state.user.name;
+          state.rep=Number(p.data.reputation||0);
+        }
+      }catch(e){ console.warn("[AI Play] profile sync",e); }
+
+      try{
+        const rows=await sb.from("creations").select("*,profiles(display_name)").order("created_at",{ascending:false});
+        state.items=await hydrateMedia((rows.data||[]).map(dbItem));
+      }catch(e){ console.warn("[AI Play] creations sync",e); }
+
+      try{
+        const likes=await sb.from("creation_likes").select("creation_id").eq("user_id",user.id);
+        state.liked=(likes.data||[]).map(x=>x.creation_id);
+      }catch(e){ console.warn("[AI Play] likes sync",e); }
+
+      try{
+        const dls=await sb.from("downloads").select("creation_id").eq("user_id",user.id);
+        state.downloads=(dls.data||[]).map(x=>x.creation_id);
+      }catch(e){ console.warn("[AI Play] downloads sync",e); }
+
+      try{
+        const fol=await sb.from("follows").select("following_id,profiles!follows_following_id_fkey(display_name)").eq("follower_id",user.id);
+        state.following=(fol.data||[]).map(x=>x.profiles?.display_name).filter(Boolean);
+        state.subscribed=state.following.slice();
+      }catch(e){ console.warn("[AI Play] follows sync",e); }
+
     }else{
-      const rows=await sb.from("creations").select("*,profiles(display_name)").eq("status","approved").order("created_at",{ascending:false});
-      state.items=await hydrateMedia((rows.data||[]).map(dbItem));
-      state.user=null; state.rep=0; state.liked=[]; state.downloads=[]; state.following=[]; state.subscribed=[];
+      state.user=null;
+      state.rep=0;
+      state.liked=[];
+      state.downloads=[];
+      state.following=[];
+      state.subscribed=[];
+      try{
+        const rows=await sb.from("creations").select("*,profiles(display_name)").eq("status","approved").order("created_at",{ascending:false});
+        state.items=await hydrateMedia((rows.data||[]).map(dbItem));
+      }catch(e){ console.warn("[AI Play] public creations sync",e); }
     }
     serverReady=true;
     saveState();
-    renderUser(); renderHome(); renderFollowing("today"); renderHistory(); renderSimple(); renderSearch();
+    renderUser();
+    renderHome();
+    renderFollowing("today");
+    renderHistory();
+    renderSimple();
+    renderSearch();
   }catch(e){
     console.error("[AI Play] server state",e);
     serverReady=false;
-    toast("האתר עובד, אך הסנכרון עם השרת נכשל");
+    // Keep any already-authenticated user visible instead of reverting to the guest UI.
+    renderUser();
   }
 }
 async function signUpServer(name,email,password){
@@ -519,8 +562,22 @@ async function handleGoogleCredential(response){
     token:response.credential
   });
   if(r.error) throw r.error;
+
+  // Refresh the session once more after Google finishes and update the UI
+  // before fetching any optional profile/content data.
+  const session=(await sb.auth.getSession()).data.session;
+  if(session?.user){
+    state.user={
+      id:session.user.id,
+      name:session.user.user_metadata?.display_name || session.user.user_metadata?.name ||
+           session.user.email?.split("@")[0] || "משתמש",
+      email:session.user.email || ""
+    };
+    saveState();
+    renderUser();
+    closeModal("authModal");
+  }
   await loadServerState();
-  closeModal("authModal");
   toast("התחברתם בהצלחה עם Google");
 }
 window.handleSignInWithGoogle=handleGoogleCredential;
@@ -531,7 +588,6 @@ function initGoogleIdentity(){
     client_id:GOOGLE_CLIENT_ID,
     callback:window.handleSignInWithGoogle,
     ux_mode:"popup",
-    use_fedcm_for_prompt:true,
     auto_select:false,
     cancel_on_tap_outside:true
   });
