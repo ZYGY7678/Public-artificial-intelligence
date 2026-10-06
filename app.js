@@ -4,14 +4,23 @@ const $$ = (s, root=document) => Array.from(root.querySelectorAll(s));
 const KEY = "aiplay_v4";
 const SUPABASE_URL = "https://ikgyozgzhjbdmopsaflp.supabase.co";
 const SUPABASE_KEY = "sb_publishable_ezliwatqX0wz_-ScmiWzHw_-OhgkCH8";
+const AUTH_STORAGE_KEY = "aiplay-auth-v1";
 const sb = window.supabase && typeof window.supabase.createClient === "function"
-  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storage: window.localStorage,
+        storageKey: AUTH_STORAGE_KEY
+      }
+    })
   : null;
 
 const DEFAULT_STATE = {
   user:null, rep:0, items:[], following:[], liked:[], saved:[],
   history:[], downloads:[], searches:[], subscribed:[],
-  settings:{autoplay:true,dark:true}
+  settings:{autoplay:true,dark:true,theme:"dark",accent:"#ff0000"}
 };
 
 let state = loadState();
@@ -34,6 +43,8 @@ function loadState(){
     out[k] = Array.isArray(out[k]) ? out[k] : [];
   }
   out.settings = Object.assign({}, DEFAULT_STATE.settings, out.settings || {});
+  if(!["dark","light"].includes(out.settings.theme)) out.settings.theme=out.settings.dark===false?"light":"dark";
+  if(!/^#[0-9a-fA-F]{6}$/.test(String(out.settings.accent||""))) out.settings.accent="#ff0000";
   return out;
 }
 function saveState(){
@@ -175,6 +186,13 @@ function mountIcons(){
 function renderUser(){
   $(".admin-only").forEach(el=>el.classList.toggle("hidden", !adminContext?.is_staff));
   const u = state.user, name = u?.name || "אורח";
+  const tier = u?.tier==="premium" ? "premium" : "regular";
+  const tierText = tier==="premium" ? "Premium" : "רגיל";
+  $("#settingsTierLabel") && ($("#settingsTierLabel").textContent = tier==="premium" ? "משתמש Premium" : "משתמש רגיל");
+  $("#settingsTierText") && ($("#settingsTierText").textContent = tier==="premium" ? "עד 100MB לקובץ" : "עד 30MB לקובץ");
+  $("#uploadTierLabel") && ($("#uploadTierLabel").textContent = tierText);
+  $("#uploadLimitLabel") && ($("#uploadLimitLabel").textContent = tier==="premium" ? "100MB" : "30MB");
+  $("#uploadTierDot") && $("#uploadTierDot").classList.toggle("premium", tier==="premium");
   $("#accountAvatar") && ($("#accountAvatar").textContent = initials(name));
   $("#accountName") && ($("#accountName").textContent = name);
   $("#accountRep") && ($("#accountRep").textContent = (state.rep||0) + " ✦");
@@ -432,22 +450,51 @@ function createLocalDraft(){
 async function uploadToServer(file,title){
   if(!sb) throw new Error("שירות הנתונים אינו זמין");
   const session=(await sb.auth.getSession()).data.session;
-  if(!session) throw new Error("צריך להתחבר");
+  if(!session?.user) throw new Error("צריך להתחבר מחדש לחשבון");
+
+  const tier=state.user?.tier==="premium" ? "premium" : "regular";
+  const maxBytes=tier==="premium" ? 100*1024*1024 : 30*1024*1024;
+  if(file.size>maxBytes){
+    throw new Error(tier==="premium" ? "קובץ גדול מדי — המגבלה היא 100MB" : "קובץ גדול מדי — למשתמשים רגילים המגבלה היא 30MB");
+  }
+  if(!/^(video|image|audio)\//.test(file.type||"")){
+    throw new Error("סוג הקובץ אינו נתמך");
+  }
+
   const type=(file.type||"").startsWith("video")?"video":(file.type||"").startsWith("audio")?"audio":"image";
   const id=(crypto.randomUUID ? crypto.randomUUID() : "m-"+Date.now());
   const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
   const path=session.user.id+"/"+id+"-"+safeName;
-  const up=await sb.storage.from("ai-play-media").upload(path,file,{contentType:file.type||"application/octet-stream",upsert:false});
+
+  const progress=$("#uploadProgress"), bar=$("#uploadProgressBar"), textEl=$("#uploadProgressText");
+  progress?.classList.remove("hidden"); if(bar)bar.style.width="4%"; if(textEl)textEl.textContent="מעלה את הקובץ...";
+
+  const up=await sb.storage.from("ai-play-media").upload(path,file,{
+    contentType:file.type||"application/octet-stream",
+    upsert:false
+  });
   if(up.error) throw up.error;
-  const ins=await sb.from("creations").insert({id,user_id:session.user.id,title,media_type:type,storage_path:path,status:"pending"}).select("*,profiles(display_name)").single();
-  if(ins.error){await sb.storage.from("ai-play-media").remove([path]);throw ins.error;}
+  if(bar)bar.style.width="75%";
+
+  const ins=await sb.from("creations").insert({
+    id,user_id:session.user.id,title,media_type:type,storage_path:path,status:"pending"
+  }).select("*,profiles(display_name,account_tier)").single();
+  if(ins.error){
+    await sb.storage.from("ai-play-media").remove([path]);
+    throw ins.error;
+  }
+
+  if(bar)bar.style.width="92%";
   let mediaUrl="";
   try{
     const s=await sb.storage.from("ai-play-media").createSignedUrl(path,3600);
     mediaUrl=s.data?.signedUrl||"";
   }catch(e){}
   const item=Object.assign(dbItem(ins.data),{mediaUrl});
-  state.items.unshift(item); state.rep+=1; saveState(); renderHome(); renderUser();
+  state.items.unshift(item);
+  saveState();
+  renderHome(); renderUser();
+  if(bar)bar.style.width="100%"; if(textEl)textEl.textContent="ההעלאה הושלמה";
 }
 function dbItem(row){
   return {
@@ -480,7 +527,8 @@ async function loadServerState(){
         id:user.id,
         name:user.user_metadata?.display_name || user.user_metadata?.name ||
              user.email?.split("@")[0] || "משתמש",
-        email:user.email || ""
+        email:user.email || "",
+        tier:"regular"
       };
       saveState();
       renderUser();
@@ -492,6 +540,7 @@ async function loadServerState(){
         const p=await sb.from("profiles").select("*").eq("id",user.id).maybeSingle();
         if(p.data){
           state.user.name=p.data.display_name || state.user.name;
+          state.user.tier=p.data.account_tier==="premium" ? "premium" : "regular";
           state.rep=Number(p.data.reputation||0);
         }
       }catch(e){ console.warn("[AI Play] profile sync",e); }
@@ -581,7 +630,8 @@ async function handleGoogleCredential(response){
            user.user_metadata?.name ||
            user.user_metadata?.full_name ||
            user.email?.split("@")[0] || "משתמש",
-      email:user.email || ""
+      email:user.email || "",
+      tier:"regular"
     };
     saveState();
     renderUser();
@@ -765,11 +815,25 @@ async function submitUpload(){
   if(!ensureAccount("להעלות")) return;
   const file=$("#file")?.files?.[0], title=$("#uploadTitle")?.value.trim()||"";
   if(!file || !title){toast("בחרו קובץ ושם");return;}
-  if(file.size>500*1024*1024){toast("הקובץ גדול מדי (מקסימום 500MB)");return;}
+  const maxBytes=state.user?.tier==="premium" ? 100*1024*1024 : 30*1024*1024;
+  if(file.size>maxBytes){
+    toast(state.user?.tier==="premium" ? "הקובץ גדול מדי — Premium מאפשר עד 100MB" : "הקובץ גדול מדי — משתמש רגיל מאפשר עד 30MB");
+    return;
+  }
+  if(!/^(video|image|audio)\//.test(file.type||"")){toast("סוג הקובץ אינו נתמך");return;}
   $("#uploadSubmit").disabled=true;
-  try{ await loadServerState(); await uploadToServer(file,title); closeModal("uploadModal");$("#file").value="";$("#uploadTitle").value="";toast("הקובץ הועלה ונשלח לבדיקה");}
-  catch(e){console.error(e);toast("שגיאה בהעלאה: "+(e?.message||"לא ניתן להעלות"));}
-  finally{$("#uploadSubmit").disabled=false;}
+  $("#uploadProgress")?.classList.remove("hidden");
+  try{
+    await uploadToServer(file,title);
+    closeModal("uploadModal"); $("#file").value=""; $("#uploadTitle").value="";
+    $("#uploadProgress")?.classList.add("hidden");
+    if($("#uploadProgressBar"))$("#uploadProgressBar").style.width="0";
+    toast("הקובץ הועלה ונשלח לבדיקה");
+  }catch(e){
+    console.error(e);
+    $("#uploadProgress")?.classList.add("hidden");
+    toast("שגיאה בהעלאה: "+(e?.message||"לא ניתן להעלות"));
+  }finally{$("#uploadSubmit").disabled=false;}
 }
 function setup(){
   if(window.__aiplayV4Ready) return;
@@ -829,16 +893,34 @@ function setup(){
   $("#playerShell")?.addEventListener("touchend",e=>{const dx=(e.changedTouches[0]?.clientX||0)-(window.__sx||0);if(Math.abs(dx)>130)seekBy(dx>0?-10:10);});
   $("#playerShell")?.addEventListener("dblclick",e=>{const r=e.currentTarget.getBoundingClientRect();seekBy((e.clientX-r.left)<r.width/2?-10:10);});
 
-  $("#file")?.addEventListener("change",e=>{const f=e.target.files?.[0];if(f && $("#fileName"))$("#fileName").textContent=f.name;});
+  $("#file")?.addEventListener("change",e=>{
+    const f=e.target.files?.[0];
+    if(f && $("#fileName")){
+      const mb=(f.size/1024/1024).toFixed(1);
+      $("#fileName").textContent=f.name+" · "+mb+"MB";
+    }
+  });
   $("#settingAutoplay")?.addEventListener("change",e=>{state.settings.autoplay=e.target.checked;saveState();if($("#autoplay"))$("#autoplay").checked=e.target.checked;});
   $("#settingDark")?.addEventListener("change",e=>{state.settings.dark=e.target.checked;document.body.classList.toggle("light",!e.target.checked);saveState();});
   $("#autoplay")?.addEventListener("change",e=>{state.settings.autoplay=e.target.checked;saveState();if($("#settingAutoplay"))$("#settingAutoplay").checked=e.target.checked;});
+  $("#settingTheme")?.addEventListener("change",e=>{state.settings.theme=e.target.value==="light"?"light":"dark";state.settings.dark=state.settings.theme==="dark";saveState();applySettings();});
+  $("#settingDark")?.addEventListener("change",e=>{state.settings.dark=e.target.checked;state.settings.theme=e.target.checked?"dark":"light";saveState();applySettings();});
+  $("#settingAccent")?.addEventListener("change",e=>{state.settings.accent=e.target.value;saveState();applySettings();});
 }
 function applySettings(){
-  document.body.classList.toggle("light",!state.settings.dark);
+  const theme=state.settings.theme==="light" || (state.settings.theme!=="dark" && state.settings.dark===false) ? "light" : "dark";
+  const accent=state.settings.accent || "#ff0000";
+  state.settings.theme=theme;
+  state.settings.dark=theme==="dark";
+  document.body.classList.toggle("light",theme==="light");
+  document.body.style.setProperty("--brand",accent);
+  document.body.style.setProperty("--brand-2",accent);
+  document.documentElement.style.setProperty("color-scheme",theme);
   if($("#autoplay"))$("#autoplay").checked=state.settings.autoplay;
   if($("#settingAutoplay"))$("#settingAutoplay").checked=state.settings.autoplay;
-  if($("#settingDark"))$("#settingDark").checked=state.settings.dark;
+  if($("#settingDark"))$("#settingDark").checked=theme==="dark";
+  if($("#settingTheme"))$("#settingTheme").value=theme;
+  if($("#settingAccent"))$("#settingAccent").value=accent;
 }
 async function syncAdminContext(){
   if(!sb || !state.user){
