@@ -555,30 +555,41 @@ const GOOGLE_CLIENT_ID="660683262491-mnonmgjjebdefstt1rjat9s7tfjce1pf.apps.googl
 let googleIdentityReady=false;
 
 async function handleGoogleCredential(response){
-  if(!sb) throw new Error("שירות הנתונים אינו זמין כרגע");
-  if(!response?.credential) throw new Error("Google לא החזיר אסימון התחברות");
-  const r=await sb.auth.signInWithIdToken({
-    provider:"google",
-    token:response.credential
-  });
-  if(r.error) throw r.error;
+  try{
+    if(!sb) throw new Error("שירות הנתונים אינו זמין כרגע");
+    if(!response?.credential) throw new Error("Google לא החזיר אסימון התחברות");
 
-  // Refresh the session once more after Google finishes and update the UI
-  // before fetching any optional profile/content data.
-  const session=(await sb.auth.getSession()).data.session;
-  if(session?.user){
+    const result=await sb.auth.signInWithIdToken({
+      provider:"google",
+      token:response.credential
+    });
+    if(result.error) throw result.error;
+
+    // Use the user returned by Supabase immediately; do not wait for a
+    // second getSession call, which can briefly be empty during auth locking.
+    const user=result.data?.user;
+    if(!user) throw new Error("Google אומת, אבל Supabase לא החזיר משתמש");
+
     state.user={
-      id:session.user.id,
-      name:session.user.user_metadata?.display_name || session.user.user_metadata?.name ||
-           session.user.email?.split("@")[0] || "משתמש",
-      email:session.user.email || ""
+      id:user.id,
+      name:user.user_metadata?.display_name ||
+           user.user_metadata?.name ||
+           user.user_metadata?.full_name ||
+           user.email?.split("@")[0] || "משתמש",
+      email:user.email || ""
     };
     saveState();
     renderUser();
     closeModal("authModal");
+
+    // Load optional profile/content data without allowing it to undo auth UI.
+    loadServerState().catch(()=>{});
+    switchView("profile");
+    toast("התחברתם בהצלחה עם Google");
+  }catch(e){
+    console.error("[AI Play] Google auth",e);
+    toast("שגיאה בכניסה עם Google: "+(e?.message||"לא ניתן להתחבר"));
   }
-  await loadServerState();
-  toast("התחברתם בהצלחה עם Google");
 }
 window.handleSignInWithGoogle=handleGoogleCredential;
 
@@ -819,6 +830,31 @@ function boot(){
 window.addEventListener("error",e=>console.error("[AI Play] runtime",e.error||e.message));
 if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",boot,{once:true}); else boot();
 if(sb){
-  sb.auth.onAuthStateChange(()=>setTimeout(loadServerState,0));
+  sb.auth.onAuthStateChange((event, session)=>{
+    if(session?.user){
+      const user=session.user;
+      state.user={
+        id:user.id,
+        name:user.user_metadata?.display_name ||
+             user.user_metadata?.name ||
+             user.user_metadata?.full_name ||
+             user.email?.split("@")[0] || "משתמש",
+        email:user.email || ""
+      };
+      saveState();
+      renderUser();
+      closeModal("authModal");
+    }else if(event==="SIGNED_OUT"){
+      state.user=null;
+      state.rep=0;
+      state.liked=[];
+      state.downloads=[];
+      state.following=[];
+      state.subscribed=[];
+      saveState();
+      renderUser();
+    }
+    setTimeout(()=>loadServerState(),0);
+  });
   loadServerState();
 }
