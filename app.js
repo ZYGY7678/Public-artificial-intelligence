@@ -608,14 +608,18 @@ function initGoogleIdentity(){
 
 async function signInWithGoogle(){
   if(!sb) throw new Error("שירות הנתונים אינו זמין כרגע");
-  if(!googleIdentityReady && !initGoogleIdentity()){
-    throw new Error("רכיב ההתחברות של Google עדיין נטען. נסו שוב בעוד רגע");
-  }
-  google.accounts.id.prompt((notification)=>{
-    if(notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()){
-      toast("Google לא הציג את חלון ההתחברות. נסו שוב.");
+
+  // Use Supabase's official browser OAuth flow for Google.
+  // This avoids the Google Identity Services ID-token exchange that was
+  // producing the generic "שגיאה בכניסה" toast in the app.
+  const { error } = await sb.auth.signInWithOAuth({
+    provider:"google",
+    options:{
+      redirectTo:window.location.origin + window.location.pathname
     }
   });
+
+  if(error) throw error;
 }
 function renderShorts(startId){
   const arr=actualItems().filter(x=>x.type==="shorts" || x.short===true);
