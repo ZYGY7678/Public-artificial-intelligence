@@ -248,6 +248,7 @@ body.light .mini-copy small{color:#5f6368}
 }
 .brand-mark span{display:none!important}
 @media(max-width:700px){
+  .brand-mark{width:31px!important;height:31px!important;min-width:31px!important;min-height:31px!important;overflow:visible!important}
   .brand-mark svg{width:31px;height:31px}
   .brand-mark.large svg{width:44px;height:44px}
 }
