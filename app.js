@@ -611,41 +611,43 @@ let googleIdentityInitPromise=null;
 let googleRawNonce=null;
 
 async function handleGoogleCredential(response){
+  let user=null;
   try{
     if(!sb) throw new Error("שירות הנתונים אינו זמין כרגע");
     if(!response?.credential) throw new Error("Google לא החזיר אסימון התחברות");
 
     if(googleIdentityInitPromise) await googleIdentityInitPromise;
 
-    let result=await sb.auth.signInWithIdToken({
+    const result=await sb.auth.signInWithIdToken({
       provider:"google",
       token:response.credential,
       ...(googleRawNonce ? {nonce:googleRawNonce} : {})
     });
 
-    // Some browsers/providers can reject only the nonce validation.
-    // Retry once without a nonce; Supabase documents nonce as optional for Google.
-    if(result.error && /nonce|replay|claim/i.test(String(result.error.message||""))){
-      result=await sb.auth.signInWithIdToken({
-        provider:"google",
-        token:response.credential
-      });
-    }
-
     if(result.error){
-      // If Supabase established a session despite a client-side response error,
-      // use that session instead of showing a false login failure.
-      const fallbackSession=(await sb.auth.getSession()).data.session;
-      if(fallbackSession?.user){
-        result={data:{user:fallbackSession.user},error:null};
-      }else{
-        throw result.error;
+      // Verify the real auth state before declaring failure.
+      // A successful session must always win over a stale client-side error.
+      await new Promise(resolve=>setTimeout(resolve,350));
+      const sessionResult=await sb.auth.getSession();
+      user=sessionResult.data?.session?.user || null;
+      if(!user) throw result.error;
+    }else{
+      user=result.data?.user || null;
+      if(!user){
+        const sessionResult=await sb.auth.getSession();
+        user=sessionResult.data?.session?.user || null;
       }
+      if(!user) throw new Error("Google אומת, אבל לא נוצרה התחברות");
     }
+  }catch(e){
+    console.error("[AI Play] Google authentication failed",e);
+    toast("שגיאה בכניסה עם Google: "+(e?.message||"לא ניתן להתחבר"));
+    return;
+  }
 
-    const user=result.data?.user;
-    if(!user) throw new Error("Google אומת, אבל Supabase לא החזיר משתמש");
-
+  // Authentication succeeded. UI/database synchronization must never turn
+  // a successful login into a false error toast.
+  try{
     state.user={
       id:user.id,
       name:user.user_metadata?.display_name ||
@@ -658,14 +660,17 @@ async function handleGoogleCredential(response){
     saveState();
     renderUser();
     closeModal("authModal");
-    loadServerState().catch(()=>{});
     switchView("profile");
     toast("התחברתם בהצלחה עם Google");
   }catch(e){
-    console.error("[AI Play] Google auth",e);
-    const msg=e?.message||e?.error_description||"לא ניתן להתחבר";
-    toast("שגיאה בכניסה עם Google: "+msg);
+    console.warn("[AI Play] Google UI sync",e);
+    // The Supabase session is valid even if a non-auth UI update fails.
+    renderUser();
+    closeModal("authModal");
+    toast("התחברתם בהצלחה עם Google");
   }
+
+  loadServerState().catch(e=>console.warn("[AI Play] post-login sync",e));
 }
 window.handleSignInWithGoogle=handleGoogleCredential;
 
