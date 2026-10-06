@@ -608,23 +608,27 @@ function initGoogleIdentity(){
 
 async function signInWithGoogle(){
   if(!sb) throw new Error("שירות הנתונים אינו זמין כרגע");
-
-  // Keep Google authentication entirely inside the hosted page.
-  // This avoids Supabase OAuth redirects to an incorrectly configured
-  // localhost Site URL and sends the Google ID token directly to Supabase.
   if(!googleIdentityReady && !initGoogleIdentity()){
     throw new Error("Google עדיין לא נטען. נסו שוב בעוד רגע");
   }
 
-  google.accounts.id.prompt(notification=>{
-    if(notification?.isNotDisplayed?.()){
-      const reason=notification.getNotDisplayedReason?.();
-      console.warn("[AI Play] Google prompt not displayed",reason);
-      toast("חלון הכניסה של Google לא נפתח. נסו שוב");
-    }else if(notification?.isSkippedMoment?.()){
-      console.warn("[AI Play] Google prompt skipped");
-    }
+  // Show the Google account chooser from a real user click.
+  // prompt() is One Tap and may be silently suppressed by the browser,
+  // so use the explicit Google-rendered button for reliable interaction.
+  const host=document.getElementById("googleAuthRender");
+  if(!host) throw new Error("כפתור Google לא נמצא");
+  host.innerHTML="";
+  google.accounts.id.renderButton(host,{
+    type:"standard",
+    theme:"outline",
+    size:"large",
+    text:"signin_with",
+    shape:"rectangular",
+    width:Math.min(400,host.clientWidth||400),
+    locale:"he"
   });
+  const button=host.querySelector("div");
+  if(button) button.click();
 }
 function renderShorts(startId){
   const arr=actualItems().filter(x=>x.type==="shorts" || x.short===true);
