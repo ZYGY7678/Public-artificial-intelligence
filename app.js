@@ -609,17 +609,22 @@ function initGoogleIdentity(){
 async function signInWithGoogle(){
   if(!sb) throw new Error("שירות הנתונים אינו זמין כרגע");
 
-  // Use Supabase's official browser OAuth flow for Google.
-  // This avoids the Google Identity Services ID-token exchange that was
-  // producing the generic "שגיאה בכניסה" toast in the app.
-  const { error } = await sb.auth.signInWithOAuth({
-    provider:"google",
-    options:{
-      redirectTo:window.location.origin + window.location.pathname
+  // Keep Google authentication entirely inside the hosted page.
+  // This avoids Supabase OAuth redirects to an incorrectly configured
+  // localhost Site URL and sends the Google ID token directly to Supabase.
+  if(!googleIdentityReady && !initGoogleIdentity()){
+    throw new Error("Google עדיין לא נטען. נסו שוב בעוד רגע");
+  }
+
+  google.accounts.id.prompt(notification=>{
+    if(notification?.isNotDisplayed?.()){
+      const reason=notification.getNotDisplayedReason?.();
+      console.warn("[AI Play] Google prompt not displayed",reason);
+      toast("חלון הכניסה של Google לא נפתח. נסו שוב");
+    }else if(notification?.isSkippedMoment?.()){
+      console.warn("[AI Play] Google prompt skipped");
     }
   });
-
-  if(error) throw error;
 }
 function renderShorts(startId){
   const arr=actualItems().filter(x=>x.type==="shorts" || x.short===true);
