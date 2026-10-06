@@ -4,7 +4,7 @@ const $$ = (s, root=document) => Array.from(root.querySelectorAll(s));
 const KEY = "aiplay_v4";
 const SUPABASE_URL = "https://ikgyozgzhjbdmopsaflp.supabase.co";
 const SUPABASE_KEY = "sb_publishable_ezliwatqX0wz_-ScmiWzHw_-OhgkCH8";
-const AUTH_STORAGE_KEY = "aiplay-auth-v1";
+const AUTH_STORAGE_KEY = "sb-ikgyozgzhjbdmopsaflp-auth-token";
 const sb = window.supabase && typeof window.supabase.createClient === "function"
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: {
@@ -996,7 +996,7 @@ async function loadAdminModeration(){
     mountIcons();
   }catch(e){ console.error(e); $("#adminModerationList").innerHTML='<div class="empty-state"><b>לא ניתן לטעון את תור הפיקוח</b><small>'+esc(e?.message||"שגיאה")+'</small></div>'; }
 }
-async function loadAdminUsers(search){
+async async function loadAdminUsers(search){
   if(!adminCan("admin")){ $("#adminUsersList").innerHTML='<tr><td colspan="6">אין הרשאה לניהול משתמשים.</td></tr>'; return; }
   try{
     const rows=await adminRpc("admin_list_users",{p_search:search||""});
@@ -1004,7 +1004,7 @@ async function loadAdminUsers(search){
     $("#adminUsersList").innerHTML=arr.length?arr.map(u=>{
       const suspended=!!u.banned_until && new Date(u.banned_until)>new Date();
       const verified=u.email_confirmed;
-      return '<tr><td><div class="admin-user-cell"><span class="admin-user-avatar">'+esc(initials(u.display_name||u.email))+'</span><div><b>'+esc(u.display_name||"משתמש")+'</b><small>'+esc(u.email||"")+'</small></div></div></td><td><span class="status-pill '+(verified?"good":"warn")+'">'+(verified?"מאומת":"לא אומת")+'</span></td><td>'+adminFmtDate(u.created_at)+'</td><td>'+adminFmtDate(u.last_sign_in_at)+'</td><td>'+Number(u.reputation||0).toLocaleString("he-IL")+' ✦</td><td><button class="tiny-admin-btn '+(suspended?"good":"danger")+'" data-admin-user-action="'+(suspended?"unsuspend":"suspend")+'" data-admin-user-id="'+esc(u.id)+'">'+(suspended?"הפעל":"השעיה ל־30 יום")+'</button></td></tr>';
+      return '<tr><td><div class="admin-user-cell"><span class="admin-user-avatar">'+esc(initials(u.display_name||u.email))+'</span><div><b>'+esc(u.display_name||"משתמש")+'</b><small>'+esc(u.email||"")+'</small></div></div></td><td><span class="status-pill '+(verified?"good":"warn")+'">'+(verified?"מאומת":"לא אומת")+'</span></td><td>'+adminFmtDate(u.created_at)+'</td><td>'+adminFmtDate(u.last_sign_in_at)+'</td><td>'+Number(u.reputation||0).toLocaleString("he-IL")+' ✦</td><td><button class="tiny-admin-btn tier-btn '+(u.tier==="premium"?"premium":"")+'" data-admin-tier="'+(u.tier==="premium"?"regular":"premium")+'" data-admin-user-id="'+esc(u.id)+'">'+(u.tier==="premium"?"Premium":"רגיל")+'</button></td><td><button class="tiny-admin-btn '+(suspended?"good":"danger")+'" data-admin-user-action="'+(suspended?"unsuspend":"suspend")+'" data-admin-user-id="'+esc(u.id)+'">'+(suspended?"הפעל":"השעיה ל־30 יום")+'</button></td></tr>';
     }).join(""):'<tr><td colspan="6"><div class="empty-state"><b>לא נמצאו משתמשים</b></div></td></tr>';
   }catch(e){ console.error(e); $("#adminUsersList").innerHTML='<tr><td colspan="6">שגיאה בטעינת משתמשים: '+esc(e?.message||"לא ידוע")+'</td></tr>'; }
 }
@@ -1066,6 +1066,13 @@ async function adminSetCreationStatus(id,status){
     toast(status==="approved"?"היצירה אושרה לפרסום":"היצירה נדחתה"); await loadAdminModeration(); await loadAdminOverview();
   }catch(e){console.error(e);toast("לא ניתן לעדכן את היצירה: "+(e?.message||"שגיאה"));}
 }
+async function adminToggleTier(id,tier){
+  try{
+    await adminRpc("admin_set_user_tier",{p_user_id:id,p_tier:tier});
+    toast(tier==="premium"?"המשתמש הועבר ל־Premium":"המשתמש הוחזר לחשבון רגיל");
+    await loadAdminUsers($("#adminUserSearch")?.value||"");
+  }catch(e){console.error(e);toast("לא ניתן לשנות סוג משתמש: "+(e?.message||"שגיאה"));}
+}
 async function adminToggleUser(id,action){
   try{const suspend=action==="suspend"; if(suspend&&!confirm("להשעות את המשתמש ל־30 יום?"))return; await adminRpc("admin_set_user_suspension",{p_user_id:id,p_suspend:suspend});toast(suspend?"המשתמש הושעה ל־30 יום":"החשבון הופעל מחדש");await loadAdminUsers($("#adminUserSearch")?.value||"");await loadAdminOverview();}
   catch(e){console.error(e);toast("לא ניתן לשנות את מצב המשתמש: "+(e?.message||"שגיאה"));}
@@ -1083,6 +1090,7 @@ function handleAdminClick(e){
   }
   if(target.dataset.adminStatus){e.preventDefault();adminSetCreationStatus(target.dataset.adminId,target.dataset.adminStatus);return;}
   if(target.dataset.adminUserAction){e.preventDefault();adminToggleUser(target.dataset.adminUserId,target.dataset.adminUserAction);return;}
+  if(target.dataset.adminTier){e.preventDefault();adminToggleTier(target.dataset.adminUserId,target.dataset.adminTier);return;}
   if(target.dataset.adminStaffRemove){e.preventDefault();adminRemoveStaff(target.dataset.adminStaffRemove);return;}
   if(target.dataset.adminAction==="refresh"){e.preventDefault();showAdminTab(adminTab);toast("הנתונים עודכנו");return;}
   if(target.dataset.adminAction==="refresh-users"){e.preventDefault();loadAdminUsers($("#adminUserSearch")?.value||"");return;}
