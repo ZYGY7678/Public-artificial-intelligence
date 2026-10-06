@@ -607,20 +607,22 @@ async function signInServer(email,password){
 
 const GOOGLE_CLIENT_ID="660683262491-mnonmgjjebdefstt1rjat9s7tfjce1pf.apps.googleusercontent.com";
 let googleIdentityReady=false;
+let googleIdentityInitPromise=null;
+let googleRawNonce=null;
 
 async function handleGoogleCredential(response){
   try{
     if(!sb) throw new Error("שירות הנתונים אינו זמין כרגע");
     if(!response?.credential) throw new Error("Google לא החזיר אסימון התחברות");
 
-    const result=await sb.auth.signInWithIdToken({
-      provider:"google",
-      token:response.credential
-    });
+    if(googleIdentityInitPromise) await googleIdentityInitPromise;
+
+    const options={provider:"google",token:response.credential};
+    if(googleRawNonce) options.nonce=googleRawNonce;
+
+    const result=await sb.auth.signInWithIdToken(options);
     if(result.error) throw result.error;
 
-    // Use the user returned by Supabase immediately; do not wait for a
-    // second getSession call, which can briefly be empty during auth locking.
     const user=result.data?.user;
     if(!user) throw new Error("Google אומת, אבל Supabase לא החזיר משתמש");
 
@@ -636,51 +638,71 @@ async function handleGoogleCredential(response){
     saveState();
     renderUser();
     closeModal("authModal");
-
-    // Load optional profile/content data without allowing it to undo auth UI.
     loadServerState().catch(()=>{});
     switchView("profile");
     toast("התחברתם בהצלחה עם Google");
   }catch(e){
     console.error("[AI Play] Google auth",e);
-    toast("שגיאה בכניסה עם Google: "+(e?.message||"לא ניתן להתחבר"));
+    const msg=e?.message||e?.error_description||"לא ניתן להתחבר";
+    toast("שגיאה בכניסה עם Google: "+msg);
   }
 }
 window.handleSignInWithGoogle=handleGoogleCredential;
 
-function initGoogleIdentity(){
-  if(!window.google?.accounts?.id) return false;
-  google.accounts.id.initialize({
-    client_id:GOOGLE_CLIENT_ID,
-    callback:window.handleSignInWithGoogle,
-    ux_mode:"popup",
-    auto_select:false,
-    cancel_on_tap_outside:true
-  });
-  googleIdentityReady=true;
+function makeGoogleNonce(){
+  const bytes=new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes));
+}
 
-  // Render the official Google button directly into our login modal.
-  const host=document.getElementById("googleAuthBtn");
-  if(host){
-    host.innerHTML="";
-    google.accounts.id.renderButton(host,{
-      type:"standard",
-      theme:"outline",
-      size:"large",
-      text:"signin_with",
-      shape:"rectangular",
-      width:Math.min(400,host.clientWidth||400),
-      locale:"he"
+async function sha256Hex(value){
+  const data=new TextEncoder().encode(value);
+  const hash=await crypto.subtle.digest("SHA-256",data);
+  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+function initGoogleIdentity(){
+  if(googleIdentityInitPromise) return googleIdentityInitPromise;
+
+  googleIdentityInitPromise=(async()=>{
+    if(!window.google?.accounts?.id) throw new Error("Google עדיין לא נטען");
+
+    googleRawNonce=makeGoogleNonce();
+    const hashedNonce=await sha256Hex(googleRawNonce);
+
+    google.accounts.id.initialize({
+      client_id:GOOGLE_CLIENT_ID,
+      callback:window.handleSignInWithGoogle,
+      ux_mode:"popup",
+      auto_select:false,
+      cancel_on_tap_outside:true,
+      nonce:hashedNonce,
+      use_fedcm_for_prompt:true
     });
-  }
-  return true;
+    googleIdentityReady=true;
+
+    const host=document.getElementById("googleAuthBtn");
+    if(host){
+      host.innerHTML="";
+      google.accounts.id.renderButton(host,{
+        type:"standard",
+        theme:"outline",
+        size:"large",
+        text:"signin_with",
+        shape:"rectangular",
+        width:Math.min(400,host.clientWidth||400),
+        locale:"he"
+      });
+    }
+    return true;
+  })();
+
+  return googleIdentityInitPromise;
 }
 
 async function signInWithGoogle(){
   if(!sb) throw new Error("שירות הנתונים אינו זמין כרגע");
-  if(!googleIdentityReady && !initGoogleIdentity()){
-    throw new Error("Google עדיין לא נטען. נסו שוב בעוד רגע");
-  }
+  if(!googleIdentityReady) await initGoogleIdentity().catch(e=>console.warn("[AI Play] Google init",e));
 }
 function renderShorts(startId){
   const arr=actualItems().filter(x=>x.type==="shorts" || x.short===true);
