@@ -603,6 +603,21 @@ function initGoogleIdentity(){
     cancel_on_tap_outside:true
   });
   googleIdentityReady=true;
+
+  // Render the official Google button directly into our login modal.
+  const host=document.getElementById("googleAuthBtn");
+  if(host){
+    host.innerHTML="";
+    google.accounts.id.renderButton(host,{
+      type:"standard",
+      theme:"outline",
+      size:"large",
+      text:"signin_with",
+      shape:"rectangular",
+      width:Math.min(400,host.clientWidth||400),
+      locale:"he"
+    });
+  }
   return true;
 }
 
@@ -611,24 +626,6 @@ async function signInWithGoogle(){
   if(!googleIdentityReady && !initGoogleIdentity()){
     throw new Error("Google עדיין לא נטען. נסו שוב בעוד רגע");
   }
-
-  // Show the Google account chooser from a real user click.
-  // prompt() is One Tap and may be silently suppressed by the browser,
-  // so use the explicit Google-rendered button for reliable interaction.
-  const host=document.getElementById("googleAuthRender");
-  if(!host) throw new Error("כפתור Google לא נמצא");
-  host.innerHTML="";
-  google.accounts.id.renderButton(host,{
-    type:"standard",
-    theme:"outline",
-    size:"large",
-    text:"signin_with",
-    shape:"rectangular",
-    width:Math.min(400,host.clientWidth||400),
-    locale:"he"
-  });
-  const button=host.querySelector("div");
-  if(button) button.click();
 }
 function renderShorts(startId){
   const arr=actualItems().filter(x=>x.type==="shorts" || x.short===true);
