@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20261006-7">
+<link rel="stylesheet" href="styles.css?v=20261006-8">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://accounts.google.com/gsi/client"></script>
 </head>
@@ -53,7 +53,7 @@
     </nav>
     <div class="side-separator"></div>
     <nav class="side-secondary">
-      <button class="nav-item" data-view="studio"><span data-icon="spark"></span><b>סטודיו</b></button>
+      <button class="nav-item" data-view="studio"><span data-icon="spark"></span><b>סטודיו</b></button><button class="nav-item admin-only hidden" data-view="admin"><span data-icon="settings"></span><b>מרכז ניהול</b></button>
       <button class="nav-item" id="uploadSide"><span data-icon="upload"></span><b>העלאת תוכן</b></button>
       <button class="nav-item" data-view="creators"><span data-icon="users"></span><b>יוצרים</b></button>
       <button class="nav-item" data-view="reputation"><span data-icon="star"></span><b>מוניטין</b></button>
@@ -160,7 +160,7 @@
         <div class="profile-card" data-view-target="downloads"><span data-icon="download"></span><div><b>הורדות</b><small>תוכן שהורד מהמכשיר או מהפלטפורמה</small></div><span data-icon="chevron"></span></div>
         <div class="profile-card" data-view-target="watchlater"><span data-icon="clock"></span><div><b>צפה מאוחר יותר</b><small>רשימה אישית של יצירות שמורות</small></div><span data-icon="chevron"></span></div>
         <div class="profile-card" data-view-target="liked"><span data-icon="like"></span><div><b>סרטונים שאהבת</b><small>היצירות שסימנת בלייק</small></div><span data-icon="chevron"></span></div>
-        <div class="profile-card" data-view-target="reputation"><span data-icon="star"></span><div><b>המוניטין שלך</b><small><span id="profileRep">0</span> ✦</small></div><span data-icon="chevron"></span></div>
+        <div class="profile-card" data-view-target="reputation"><span data-icon="star"></span><div><b>המוניטין שלך</b><small><span id="profileRep">0</span> ✦</small></div><span data-icon="chevron"></span></div><div class="profile-card admin-only hidden" data-view-target="admin"><span data-icon="settings"></span><div><b>מרכז ניהול</b><small>ניהול משתמשים, תוכן, צוות ואבטחה</small></div><span data-icon="chevron"></span></div>
         <div class="profile-card" id="premiumCard"><span data-icon="spark"></span><div><b>Premium</b><small>הגדרות מתקדמות יופעלו כאשר השירות יהיה מחובר.</small></div><span data-icon="chevron"></span></div>
       </div>
     </section>
@@ -183,6 +183,94 @@
 
     <section class="view simple-view" data-page="creators"><div class="page-head"><div><h1>יוצרים</h1><p>יוצרים אמיתיים שיופיעו לאחר חיבור לחשבון השרת</p></div></div><div class="empty-state"><span data-icon="users"></span><b>אין עדיין רשימת יוצרים מהשרת</b><small>לא מוצגים כאן שמות מומצאים.</small></div></section>
     <section class="view simple-view" data-page="reputation"><div class="page-head"><div><h1>מוניטין</h1><p>התקדמות אישית ורמות</p></div></div><div class="reputation-grid"><div class="rep-card big"><small>המוניטין שלי</small><b id="repValue">0</b><span>✦</span></div><div class="rep-card"><small>רמה</small><b id="repLevel">1</b><span id="repTarget">יעד: 100 ✦</span></div><div class="rep-card"><small>יצירות</small><b id="myCount">0</b><span>בחשבון הזה</span></div></div><div class="rep-progress"><div><b>התקדמות לרמה הבאה</b><span id="repGoal">פתחו חשבון כדי להתחיל</span></div><div class="progress-line"><i id="repProgress"></i></div></div></section>
+    <section class="view simple-view admin-view" data-page="admin">
+      <div class="admin-head page-head">
+        <div><div class="eyebrow">AI PLAY CONTROL CENTER</div><h1>מרכז ניהול</h1><p>שליטה מלאה בפלטפורמה · <span id="adminRole">טוען הרשאות...</span></p></div>
+        <div class="admin-head-actions"><button class="outline-btn" data-admin-action="refresh">רענון נתונים</button><button class="primary-btn" data-admin-action="focus-staff">ניהול צוות</button></div>
+      </div>
+      <div class="admin-security-banner"><span data-icon="settings"></span><div><b>מרכז מאובטח</b><small>הפעולות מנוהלות בצד השרת לפי תפקיד. הסתרת מסכים לבדה אינה משמשת כמנגנון הרשאה.</small></div><strong id="adminActor">—</strong></div>
+      <div class="admin-tabs">
+        <button class="active" data-admin-tab="overview">סקירה</button>
+        <button data-admin-tab="moderation">פיקוח תוכן</button>
+        <button data-admin-tab="users">משתמשים</button>
+        <button data-admin-tab="staff">צוות והרשאות</button>
+        <button data-admin-tab="settings">הגדרות מערכת</button>
+        <button data-admin-tab="audit">יומן פעילות</button>
+      </div>
+
+      <section class="admin-pane active" data-admin-pane="overview">
+        <div class="admin-stats">
+          <div class="admin-stat"><small>משתמשים</small><b id="adminUsersCount">0</b><span>חשבונות פעילים</span></div>
+          <div class="admin-stat warn"><small>ממתינים לבדיקה</small><b id="adminPendingCount">0</b><span>פריטי פיקוח</span></div>
+          <div class="admin-stat"><small>אושרו</small><b id="adminApprovedCount">0</b><span>יצירות מאושרות</span></div>
+          <div class="admin-stat"><small>נדחו</small><b id="adminRejectedCount">0</b><span>יצירות שנדחו</span></div>
+          <div class="admin-stat"><small>צוות</small><b id="adminStaffCount">0</b><span>בעלי תפקיד</span></div>
+          <div class="admin-stat"><small>צפיות</small><b id="adminViewsCount">0</b><span>סך הצפיות</span></div>
+          <div class="admin-stat"><small>תגובות</small><b id="adminCommentsCount">0</b><span>תגובות במערכת</span></div>
+          <div class="admin-stat"><small>העלאות</small><b id="adminUploadsCount">0</b><span>פריטי תוכן</span></div>
+        </div>
+        <div class="admin-quick-grid">
+          <button class="admin-quick" data-admin-tab="moderation"><span class="admin-quick-icon">✓</span><b>תור פיקוח</b><small>בדיקת תוכן שממתין לאישור</small><em id="adminQuickPending">0 ממתינים</em></button>
+          <button class="admin-quick" data-admin-tab="users"><span class="admin-quick-icon">◎</span><b>ניהול משתמשים</b><small>חיפוש חשבונות ובקרת גישה</small></button>
+          <button class="admin-quick" data-admin-tab="staff"><span class="admin-quick-icon">★</span><b>צוות פיקוח ומנהלים</b><small>הוספה, שינוי והסרת הרשאות</small></button>
+          <button class="admin-quick" data-admin-tab="settings"><span class="admin-quick-icon">⚙</span><b>הגדרות קריטיות</b><small>הרשמות, פיקוח, תגובות והתראות</small></button>
+        </div>
+        <div class="admin-health">
+          <div><b>מצב המערכת</b><span class="admin-health-dot"></span><span>חיבור נתונים זמין</span></div>
+          <button class="text-btn" data-admin-action="refresh">בדיקת נתונים מחדש</button>
+        </div>
+      </section>
+
+      <section class="admin-pane" data-admin-pane="moderation">
+        <div class="admin-pane-head"><div><h2>תור פיקוח</h2><p>כל היצירות שממתינות לבדיקה לפני פרסום.</p></div><span class="admin-badge" id="moderationCount">0</span></div>
+        <div id="adminModerationList" class="admin-list"></div>
+      </section>
+
+      <section class="admin-pane" data-admin-pane="users">
+        <div class="admin-pane-head"><div><h2>ניהול משתמשים</h2><p>חיפוש חשבונות, צפייה במצב האימות והשעיה ל־30 יום.</p></div></div>
+        <div class="admin-toolbar"><div class="admin-search"><span data-icon="search"></span><input id="adminUserSearch" placeholder="חיפוש לפי אימייל או שם..." autocomplete="off"></div><button class="outline-btn" data-admin-action="refresh-users">רענן</button></div>
+        <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>משתמש</th><th>אימות</th><th>הצטרף</th><th>כניסה אחרונה</th><th>מוניטין</th><th>פעולה</th></tr></thead><tbody id="adminUsersList"></tbody></table></div>
+      </section>
+
+      <section class="admin-pane" data-admin-pane="staff">
+        <div class="admin-pane-head"><div><h2>צוות והרשאות</h2><p>הוספת מנהל או חבר צוות פיקוח. אפשר להזין אימייל גם לפני שהמשתמש נרשם.</p></div></div>
+        <div class="admin-two-col">
+          <form class="admin-form" id="adminStaffForm">
+            <div class="admin-form-title"><span>＋</span><div><b>הוספת בעל תפקיד</b><small>החשבון יקבל הרשאה לפי האימייל לאחר כניסה.</small></div></div>
+            <label class="field">אימייל<input id="adminStaffEmail" type="email" required placeholder="name@example.com"></label>
+            <label class="field">שם תצוגה<input id="adminStaffName" placeholder="שם שיוצג בצוות"></label>
+            <label class="field">תפקיד<select id="adminStaffRole"><option value="admin">מנהל</option><option value="moderator">צוות פיקוח</option><option value="reviewer">בודק</option></select></label>
+            <button class="primary-btn wide" type="submit">הוסף לצוות</button>
+          </form>
+          <div class="admin-role-info"><b>מבנה ההרשאות</b><div><strong>מנהל ראשי</strong><span>כל האפשרויות, כולל ניהול מנהלים.</span></div><div><strong>מנהל</strong><span>משתמשים, צוות, פיקוח, הגדרות ויומן.</span></div><div><strong>צוות פיקוח</strong><span>בדיקה, אישור ודחיית תוכן.</span></div><div><strong>בודק</strong><span>גישה לתור הפיקוח ולפעולות תוכן.</span></div></div>
+        </div>
+        <div class="admin-team-head"><h3>צוות קיים</h3><span id="adminStaffCountLabel">0 חברים</span></div>
+        <div id="adminStaffList" class="admin-staff-list"></div>
+      </section>
+
+      <section class="admin-pane" data-admin-pane="settings">
+        <div class="admin-pane-head"><div><h2>הגדרות מערכת</h2><p>הגדרות מרכזיות לפעילות הפלטפורמה. השינויים נשמרים בשרת.</p></div></div>
+        <div class="admin-settings-grid">
+          <label class="admin-setting"><span><b>מצב תחזוקה</b><small>הצגת מצב תחזוקה למערכת.</small></span><input id="adminSetMaintenance" data-admin-setting="maintenance_mode" type="checkbox"></label>
+          <label class="admin-setting"><span><b>הרשמות חדשות</b><small>אפשר למשתמשים חדשים לפתוח חשבון.</small></span><input id="adminSetSignups" data-admin-setting="allow_signups" type="checkbox" checked></label>
+          <label class="admin-setting"><span><b>אישור תוכן לפני פרסום</b><small>תוכן חדש נכנס לתור הפיקוח.</small></span><input id="adminSetModeration" data-admin-setting="require_moderation" type="checkbox" checked></label>
+          <label class="admin-setting"><span><b>העלאות משתמשים</b><small>אפשר להעלות תוכן מהמכשיר.</small></span><input id="adminSetUploads" data-admin-setting="public_uploads" type="checkbox" checked></label>
+          <label class="admin-setting"><span><b>תגובות</b><small>אפשרות לתגובות בתוך הפלטפורמה.</small></span><input id="adminSetComments" data-admin-setting="comments_enabled" type="checkbox" checked></label>
+          <label class="admin-setting"><span><b>התראות</b><small>הפעלת מערכת ההתראות.</small></span><input id="adminSetNotifications" data-admin-setting="notifications_enabled" type="checkbox" checked></label>
+        </div>
+        <div class="admin-settings-form">
+          <label class="field">גודל העלאה מרבי (MB)<input id="adminSetMaxUpload" data-admin-setting="max_upload_mb" type="number" min="1" max="5000" value="500"></label>
+          <label class="field">הודעה מערכתית<input id="adminSetAnnouncement" data-admin-setting="announcement" placeholder="הודעה שתוצג למשתמשים"></label>
+          <button class="primary-btn" data-admin-action="save-settings">שמירת הגדרות</button>
+        </div>
+      </section>
+
+      <section class="admin-pane" data-admin-pane="audit">
+        <div class="admin-pane-head"><div><h2>יומן פעילות</h2><p>תיעוד פעולות ניהול, פיקוח ושינויי הגדרות.</p></div><button class="outline-btn" data-admin-action="refresh-audit">רענן</button></div>
+        <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>זמן</th><th>מבצע</th><th>פעולה</th><th>יעד</th><th>פרטים</th></tr></thead><tbody id="adminAuditList"></tbody></table></div>
+      </section>
+    </section>
+
   </main>
 </div>
 
@@ -211,6 +299,6 @@
 <div class="modal" id="searchFiltersModal"><div class="modal-card"><button class="modal-close" data-close="searchFiltersModal">×</button><div class="eyebrow">FILTERS</div><h2>סינון תוצאות</h2><div class="filter-grid"><button data-filter="new">תאריך העלאה</button><button data-filter="video">סרטונים</button><button data-filter="image">תמונות</button><button data-filter="shorts">Shorts</button><button data-filter="long">משך</button><button data-filter="all">הכול</button></div></div></div>
 
 <div class="toast" id="toast"></div>
-<script src="app.js?v=20261006-15"></script>
+<script src="app.js?v=20261006-16"></script>
 </body>
 </html>
