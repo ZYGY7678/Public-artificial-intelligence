@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>מפתח Gemini בלחיצה אחת</title>
+<style>
+  :root {
+    --bg: #f5f7fb;
+    --surface: #ffffff;
+    --text: #1b2333;
+    --muted: #5d6b82;
+    --accent: #2457d6;
+    --accent-ink: #ffffff;
+    --ok: #17794a;
+    --err: #b3261e;
+    --line: #d9dfeb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12161f;
+      --surface: #1a2030;
+      --text: #e8ecf5;
+      --muted: #9aa7c0;
+      --accent: #6d95ff;
+      --accent-ink: #0c1220;
+      --ok: #55d08f;
+      --err: #ff8a80;
+      --line: #2b3550;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Heebo", "Segoe UI", Arial, sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  main {
+    width: 100%;
+    max-width: 480px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 28px 24px;
+  }
+  h1 { font-size: 1.5rem; margin: 0 0 8px; }
+  p { margin: 0 0 16px; color: var(--muted); }
+  button {
+    font: inherit;
+    cursor: pointer;
+    border: 0;
+    border-radius: 10px;
+    padding: 12px 18px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 600;
+    width: 100%;
+  }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button[disabled] { opacity: .6; cursor: default; }
+  button.secondary {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--line);
+    margin-top: 10px;
+  }
+  .keybox { display: flex; gap: 8px; margin: 16px 0 4px; }
+  .keybox input {
+    flex: 1;
+    font: 0.95rem ui-monospace, Consolas, monospace;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--text);
+    direction: ltr;
+    text-align: left;
+    min-width: 0;
+  }
+  .keybox button { width: auto; white-space: nowrap; }
+  #status { margin-top: 16px; font-size: .95rem; min-height: 1.4em; }
+  #status.err { color: var(--err); }
+  #status.ok { color: var(--ok); }
+  .hidden { display: none; }
+  small { color: var(--muted); display: block; margin-top: 18px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>מפתח API של Gemini</h1>
+  <p>מתחברים עם חשבון גוגל, והמפתח נוצר ומוצג כאן להעתקה.</p>
+
+  <div id="loginView">
+    <button id="loginBtn">התחברות עם Google ויצירת מפתח</button>
+  </div>
+
+  <div id="resultView" class="hidden">
+    <div class="keybox">
+      <input id="keyField" type="text" readonly aria-label="מפתח API">
+      <button id="copyBtn">העתק</button>
+    </div>
+    <button class="secondary" id="againBtn">יצירת מפתח נוסף</button>
+  </div>
+
+  <div id="status" role="status" aria-live="polite"></div>
+
+  <small>האתר פועל כולו בדפדפן שלך. המפתח לא נשמר ולא נשלח לשום שרת.</small>
+</main>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+// === הגדרה: הדבק כאן את מזהה הלקוח (OAuth Client ID מסוג Web) ===
+const CLIENT_ID = "PASTE_YOUR_CLIENT_ID.apps.googleusercontent.com";
+
+const SCOPE = "https://www.googleapis.com/auth/cloud-platform";
+const GEMINI_SERVICE = "generativelanguage.googleapis.com";
+
+const $ = (id) => document.getElementById(id);
+const statusEl = $("status");
+let tokenClient = null;
+
+function setStatus(msg, kind = "") {
+  statusEl.textContent = msg;
+  statusEl.className = kind;
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function api(token, url, method = "GET", body) {
+  const res = await fetch(url, {
+    method,
+    headers: {
+      "Authorization": "Bearer " + token,
+      "Content-Type": "application/json"
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const e = new Error((data.error && data.error.message) || ("שגיאה " + res.status));
+    e.status = res.status;
+    e.data = data;
+    throw e;
+  }
+  return data;
+}
+
+async function waitOperation(token, base, op) {
+  for (let i = 0; i < 60; i++) {
+    if (op.done) {
+      if (op.error) throw new Error(op.error.message || "הפעולה נכשלה");
+      return op;
+    }
+    await sleep(1500);
+    op = await api(token, base + op.name);
+  }
+  throw new Error("הפעולה לוקחת יותר מדי זמן, נסה שוב");
+}
+
+function randomProjectId() {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let s = "gemini-key-";
+  for (let i = 0; i < 8; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+async function createKey(token) {
+  const projectId = randomProjectId();
+
+  setStatus("יוצר פרויקט...");
+  let op = await api(token, "https://cloudresourcemanager.googleapis.com/v3/projects", "POST",
+    { projectId, displayName: "Gemini API Key" });
+  await waitOperation(token, "https://cloudresourcemanager.googleapis.com/v3/", op);
+
+  setStatus("מפעיל את Gemini API...");
+  op = await api(token,
+    `https://serviceusage.googleapis.com/v1/projects/${projectId}/services/${GEMINI_SERVICE}:enable`,
+    "POST", {});
+  await waitOperation(token, "https://serviceusage.googleapis.com/v1/", op);
+
+  setStatus("יוצר מפתח...");
+  op = await api(token,
+    `https://apikeys.googleapis.com/v2/projects/${projectId}/locations/global/keys`,
+    "POST",
+    {
+      displayName: "Gemini API Key",
+      restrictions: { apiTargets: [{ service: GEMINI_SERVICE }] }
+    });
+  op = await waitOperation(token, "https://apikeys.googleapis.com/v2/", op);
+
+  const key = op.response && op.response.keyString;
+  if (!key) throw new Error("המפתח נוצר אך לא הוחזר. בדוק ב-Google Cloud Console.");
+  return key;
+}
+
+function showKey(key) {
+  $("keyField").value = key;
+  $("loginView").classList.add("hidden");
+  $("resultView").classList.remove("hidden");
+  setStatus("המפתח מוכן.", "ok");
+}
+
+function friendlyError(e) {
+  const m = e.message || "";
+  if (e.status === 403 && /has not been used|disabled/i.test(m)) {
+    return "ה-APIs של האתר עדיין לא הופעלו בפרויקט המפתח. (למפעיל האתר: הפעל Cloud Resource Manager, Service Usage ו-API Keys)";
+  }
+  if (/terms of service|TOS/i.test(m)) {
+    return "צריך לאשר תחילה את תנאי השימוש של Google Cloud: console.cloud.google.com";
+  }
+  if (/quota|limit/i.test(m)) {
+    return "הגעת למכסת הפרויקטים בחשבון. מחק פרויקט ישן או השתמש ב-aistudio.google.com/apikey.";
+  }
+  return "שגיאה: " + m;
+}
+
+function init() {
+  if (!window.google || !google.accounts) { setTimeout(init, 200); return; }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPE,
+    callback: async (resp) => {
+      if (resp.error) {
+        setStatus("ההתחברות בוטלה או נכשלה.", "err");
+        $("loginBtn").disabled = false;
+        return;
+      }
+      try {
+        const key = await createKey(resp.access_token);
+        showKey(key);
+      } catch (e) {
+        setStatus(friendlyError(e), "err");
+      } finally {
+        $("loginBtn").disabled = false;
+      }
+    }
+  });
+}
+
+$("loginBtn").addEventListener("click", () => {
+  if (!tokenClient) { setStatus("ספריית גוגל עדיין נטענת, נסה שוב.", "err"); return; }
+  $("loginBtn").disabled = true;
+  setStatus("");
+  tokenClient.requestAccessToken({ prompt: "consent" });
+});
+
+$("copyBtn").addEventListener("click", async () => {
+  const key = $("keyField").value;
+  try {
+    await navigator.clipboard.writeText(key);
+  } catch (_) {
+    $("keyField").select();
+    document.execCommand("copy");
+  }
+  setStatus("הועתק.", "ok");
+});
+
+$("againBtn").addEventListener("click", () => {
+  $("resultView").classList.add("hidden");
+  $("loginView").classList.remove("hidden");
+  $("keyField").value = "";
+  setStatus("");
+});
+
+init();
+</script>
+</body>
+</html>
