@@ -40,6 +40,9 @@ jobs:
         with:
           gradle-version: '6.7.1'
 
+      - name: Train compact Hebrew ML intent model
+        run: python3 ai-talk-android/tools/train_intent_model.py
+
       - name: Assemble debug APK
         working-directory: ai-talk-android
         run: gradle assembleDebug --no-daemon --stacktrace
