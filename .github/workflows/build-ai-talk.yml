@@ -5,24 +5,46 @@ on:
     paths:
       - 'ai-talk-android/**'
       - '.github/workflows/build-ai-talk.yml'
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+
+      # Current Android command-line tools require JDK 17.
+      - name: Set up JDK 17 for Android SDK tools
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-29" "build-tools;29.0.3"
+
+      # Keep the legacy Gradle/AGP toolchain on its supported JDK.
+      - name: Set up JDK 11 for Gradle
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '11'
-      - uses: android-actions/setup-android@v3
-      - name: Install Android SDK
-        run: sdkmanager "platforms;android-29" "build-tools;29.0.3"
+
       - uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '6.7.1'
+
       - name: Assemble debug APK
         working-directory: ai-talk-android
-        run: gradle assembleDebug --no-daemon
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Verify APK exists
+        run: |
+          test -s ai-talk-android/app/build/outputs/apk/debug/app-debug.apk
+          ls -lh ai-talk-android/app/build/outputs/apk/debug/app-debug.apk
+
       - uses: actions/upload-artifact@v4
         with:
           name: AI-Talk-Qin1S-debug
