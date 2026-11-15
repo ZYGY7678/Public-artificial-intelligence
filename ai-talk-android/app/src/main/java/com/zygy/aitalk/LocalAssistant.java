@@ -57,7 +57,20 @@ public final class LocalAssistant {
         add("food","אני רעב","מה אפשר לאכול","בוא נדבר על אוכל","בא לי ארוחה","אני צמא");
         add("work","תעזור לי במשימה","אני צריך לעשות משהו","בוא נתחיל לעבוד","יש לי פרויקט","אני רוצה שתבצע פעולה");
         add("understanding","אתה לא מבין אותי","למה אתה לא מבין מה אני אומר","לא לזה התכוונתי","אתה מפרש אותי לא נכון","הבנת מה ביקשתי");
-        add("compliment","אתה חכם","כל הכבוד לך","עבודה טובה","אהבתי את התשובה","אתה מעולה");
+        add("compliment","אתה חכם","כל הכבוד לך","עבודה טובה","אהבתי את התשובה","אתה מעולה","תשובה מצוינת","עזרת לי מאוד","אתה ממש טוב","כל הכבוד על העבודה");
+        add("explain","תסביר לי","אפשר הסבר","מה המשמעות של זה","תפרט בבקשה","תסביר במילים פשוטות","אני רוצה להבין","תן לי פירוט","איך זה עובד","מה הכוונה","תסביר את הנושא");
+        add("question","יש לי שאלה","אפשר לשאול משהו","רציתי לשאול אותך","תענה לי בבקשה","אני רוצה לדעת משהו","תוכל לענות לי","אפשר לקבל תשובה");
+        add("opinion","מה דעתך","מה אתה חושב על זה","איך אתה רואה את הנושא","מה העמדה שלך","לדעתך זה טוב","אתה מסכים איתי");
+        add("sad","אני עצוב","אני מרגיש רע","עבר עלי יום קשה","אני מבואס","אני מאוכזב","אין לי מצב רוח","קשה לי היום");
+        add("happy","אני שמח","איזה יום נהדר","אני מרוצה","קרה לי משהו טוב","אני מאושר","יש לי חדשות טובות");
+        add("bored","משעמם לי","אין לי מה לעשות","אני משתעמם","תן לי רעיון","במה אפשר להתעסק","תציע משהו מעניין");
+        add("learning","למד אותי משהו","אני רוצה ללמוד","תן לי עובדה מעניינת","ספר לי משהו חדש","תחדש לי","תלמד אותי דבר חדש");
+        add("technology","ספר לי על טכנולוגיה","אני אוהב מחשבים","מה זה אנדרואיד","בוא נדבר על מחשבים","איך עובדת אפליקציה","אני מתעניין בטכנולוגיה");
+        add("travel","אני רוצה לטייל","ספר לי על טיולים","לאן כדאי לנסוע","אני אוהב לטייל","בוא נדבר על מקומות בעולם");
+        add("family","ספר לי על משפחה","בוא נדבר על משפחה","יש לי משפחה","אני רוצה לדבר על חברים","חבר שלי");
+        add("clarify","לא הבנת למה התכוונתי","אני אסביר שוב","הכוונה שלי אחרת","תקשיב למה שאני אומר","לא לזה התכוונתי בכלל","אתה טועה בהבנה");
+        add("yes","כן","נכון מאוד","בדיוק","זה מה שהתכוונתי","מסכים","בהחלט");
+        add("no","לא","ממש לא","זה לא נכון","טעית","לא נכון בכלל","שלילי");
     }
 
     private void concept(String key, String... words) {
@@ -82,6 +95,11 @@ public final class LocalAssistant {
                 return "נעים להכיר, " + userName + ". אזכור את השם שלך כל עוד האפליקציה פתוחה.";
             }
         }
+
+        if (has(n,"כן","נכון","בדיוק","בהחלט") && lastIntent.length()>0)
+            return contextualYes();
+        if (has(n,"לא","ממש לא","לא נכון","טעית") && lastIntent.length()>0 && !n.contains("לא הבנת"))
+            return contextualNo();
 
         Match match = understand(raw);
         if (match.score < 0.20) {
@@ -109,7 +127,17 @@ public final class LocalAssistant {
         if (intent.equals("location")) return "אין לי גישה למיקום המכשיר, ולכן איני יודע היכן אתה נמצא.";
         if (intent.equals("food")) return "בכיף, נדבר על אוכל. אתה מחפש רעיון לארוחה, מתכון או סתם משוחח?";
         if (intent.equals("work")) return "בשמחה. תאר לי מה אתה רוצה להשיג, ואנסה לחלק את המשימה לשלבים.";
-        if (intent.equals("understanding")) return "אני מבין שאתה אומר שלא קלטתי את הכוונה. המודל המקומי עדיין מוגבל, אבל אנסה שוב. מה בדיוק רצית שאעשה?";
+        if (intent.equals("understanding") || intent.equals("clarify")) return "אני מבין שהפירוש שלי לא תאם למה שהתכוונת. בוא ננסה מחדש: תאר לי את התוצאה שרצית, ואנסה להתאים את עצמי.";
+        if (intent.equals("explain")) return "בשמחה. כתוב לי את הנושא או המושג שתרצה שאסביר, ואנסה להסביר אותו בצורה פשוטה. כרגע הידע שלי מוגבל למידע שנכלל באפליקציה.";
+        if (intent.equals("question")) return "בוודאי, שאל אותי. אנסה להבין את השאלה ולענות בכנות אם יש לי מספיק מידע.";
+        if (intent.equals("opinion")) return "אני יכול לשקול את היתרונות והחסרונות, אבל אין לי דעות או חוויות אישיות. על איזה נושא תרצה לשמוע ניתוח?";
+        if (intent.equals("sad")) return "מצטער לשמוע שעובר עליך יום קשה. אני כאן להקשיב. רוצה לספר לי מה קרה?";
+        if (intent.equals("happy")) return "איזה יופי! שמח לשמוע שיש לך חדשות טובות. רוצה לספר לי מה קרה?";
+        if (intent.equals("bored")) return "אפשר לעשות חידון קצר, לפתור חידה, לדבר על מוזיקה או ללמוד עובדה מעניינת. מה נשמע לך?";
+        if (intent.equals("learning")) return "עובדה מעניינת: תמנונים מחזיקים חלק גדול מתאי העצב שלהם בזרועות, ולכן כל זרוע יכולה לבצע תנועות מורכבות באופן חלקי ועצמאי.";
+        if (intent.equals("technology")) return "טכנולוגיה כוללת חומרה ותוכנה שפועלות יחד. אפשר לדבר על טלפונים, מחשבים, אפליקציות, תכנות או בינה מלאכותית.";
+        if (intent.equals("travel")) return "טיולים יכולים להיות דרך נהדרת להכיר מקומות. אין לי כרגע מידע חי על מחירים או מצב אתרים, אבל אפשר לחשוב יחד על סוג הטיול שמתאים לך.";
+        if (intent.equals("family")) return "משפחה וחברים הם נושאים חשובים. אני יכול להקשיב ולעזור לך לחשוב על מצב או שאלה שמעסיקים אותך.");
         return "אני מקשיב. ספר לי עוד קצת.";
     }
 
@@ -122,6 +150,19 @@ public final class LocalAssistant {
             if (score > best.score) { best.score = score; best.intent = entry.getKey(); }
         }
         return best;
+    }
+
+    private String contextualYes() {
+        if (lastIntent.equals("explain")) return "מעולה. כתוב את המושג או השאלה, ואתחיל להסביר.";
+        if (lastIntent.equals("question")) return "אני מקשיב. מה השאלה?";
+        if (lastIntent.equals("work")) return "מצוין. מה הצעד הראשון או מה בדיוק צריך לבצע?";
+        if (lastIntent.equals("food")) return "אז נמשיך. איזה סוג אוכל או ארוחה מעניין אותך?";
+        if (lastIntent.equals("music")) return "יופי. איזה סגנון מוזיקה אתה אוהב?";
+        return "הבנתי. ספר לי עוד כדי שנוכל להמשיך.";
+    }
+    private String contextualNo() {
+        if (lastIntent.equals("greeting")) return "בסדר גמור. אולי תספר לי מה תרצה לעשות?";
+        return "הבנתי, אז לא לזה התכוונת. נסה לנסח מה כן רצית, ואעדכן את ההבנה שלי.";
     }
 
     private double similarity(String[] a, String[] b) {
@@ -137,6 +178,26 @@ public final class LocalAssistant {
         int common=0; for (String t:x.keySet()) if (y.containsKey(t)) common++;
         double coverage = (double)common/Math.max(1,Math.min(x.size(),y.size()));
         return cosine*0.78 + coverage*0.22;
+    }
+
+    private boolean containsNegation(String[] words) {
+        for (String w : words) if (w.equals("לא") || w.equals("אין") || w.equals("בלי") || w.equals("לעולם")) return true;
+        return false;
+    }
+    private boolean editDistanceAtMostOne(String a,String b) {
+        if (Math.abs(a.length()-b.length()) > 1) return false;
+        int i=0,j=0,errors=0;
+        while (i<a.length() && j<b.length()) {
+            if (a.charAt(i)==b.charAt(j)) { i++; j++; }
+            else {
+                if (++errors>1) return false;
+                if (a.length()>b.length()) i++;
+                else if (b.length()>a.length()) j++;
+                else { i++; j++; }
+            }
+        }
+        if (i<a.length() || j<b.length()) errors++;
+        return errors<=1;
     }
 
     private double weight(String t,int count) {
