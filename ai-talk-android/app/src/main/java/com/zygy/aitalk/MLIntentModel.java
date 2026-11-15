@@ -6,18 +6,18 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
 /**
- * Small offline Hebrew character-ngram classifier.
- * The model is trained during the GitHub Actions build from the assistant's
- * labeled examples, then loaded from assets. It uses no network or native libs.
+ * Offline k-nearest-example Hebrew text classifier trained at build time.
+ * The compact model uses word and character n-grams; no network or native code.
  */
 public final class MLIntentModel {
-    private final Map<String, Feature> features = new HashMap<String, Feature>();
+    private final Map<String, Integer> featureIds = new HashMap<String, Integer>();
     private String[] intents = new String[0];
+    private float[] idf = new float[0];
+    private final ArrayList<Example> examples = new ArrayList<Example>();
 
     public MLIntentModel(Context context) {
         load(context);
@@ -30,35 +30,52 @@ public final class MLIntentModel {
             reader = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
             String line;
             ArrayList<String> labels = new ArrayList<String>();
-            ArrayList<String> featureLines = new ArrayList<String>();
+            ArrayList<String> featureRows = new ArrayList<String>();
+            ArrayList<String> exampleRows = new ArrayList<String>();
             while ((line = reader.readLine()) != null) {
                 if (line.length() == 0 || line.startsWith("#")) continue;
                 if (line.startsWith("C\t")) {
                     String[] parts = line.split("\\t");
                     if (parts.length >= 2) labels.add(parts[1]);
                 } else if (line.startsWith("F\t")) {
-                    featureLines.add(line);
+                    featureRows.add(line);
+                } else if (line.startsWith("E\t")) {
+                    exampleRows.add(line);
                 }
             }
             intents = labels.toArray(new String[labels.size()]);
-            for (String row : featureLines) {
+            idf = new float[featureRows.size()];
+            for (String row : featureRows) {
                 String[] parts = row.split("\\t");
                 if (parts.length < 4) continue;
-                Feature f = new Feature(Float.parseFloat(parts[2]), intents.length);
-                String[] entries = parts[3].split(",");
-                for (String entry : entries) {
-                    String[] pair = entry.split(":");
-                    if (pair.length != 2) continue;
-                    int index = Integer.parseInt(pair[0]);
-                    if (index >= 0 && index < f.weights.length) {
-                        f.weights[index] = Float.parseFloat(pair[1]);
-                    }
+                int index = Integer.parseInt(parts[1]);
+                if (index < 0 || index >= idf.length) continue;
+                featureIds.put(parts[2], Integer.valueOf(index));
+                idf[index] = Float.parseFloat(parts[3]);
+            }
+            for (String row : exampleRows) {
+                String[] parts = row.split("\\t");
+                if (parts.length < 3) continue;
+                int label = Integer.parseInt(parts[1]);
+                if (label < 0 || label >= intents.length) continue;
+                String[] pairs = parts[2].split(",");
+                int[] indexes = new int[pairs.length];
+                float[] values = new float[pairs.length];
+                int used = 0;
+                for (String pair : pairs) {
+                    String[] kv = pair.split(":");
+                    if (kv.length != 2) continue;
+                    indexes[used] = Integer.parseInt(kv[0]);
+                    values[used] = Float.parseFloat(kv[1]);
+                    used++;
                 }
-                features.put(parts[1], f);
+                if (used > 0) examples.add(new Example(label, trim(indexes, used), trim(values, used)));
             }
         } catch (Exception ignored) {
-            features.clear();
+            featureIds.clear();
+            examples.clear();
             intents = new String[0];
+            idf = new float[0];
         } finally {
             if (reader != null) {
                 try { reader.close(); } catch (Exception ignored) {}
@@ -66,56 +83,88 @@ public final class MLIntentModel {
         }
     }
 
+    private int[] trim(int[] source, int count) {
+        int[] result = new int[count];
+        System.arraycopy(source, 0, result, 0, count);
+        return result;
+    }
+    private float[] trim(float[] source, int count) {
+        float[] result = new float[count];
+        System.arraycopy(source, 0, result, 0, count);
+        return result;
+    }
+
     public Prediction predict(String input) {
-        if (intents.length == 0 || features.size() == 0 || input == null) return null;
+        if (intents.length == 0 || examples.size() == 0 || input == null) return null;
         Map<String, Integer> counts = extractFeatures(input);
-        double[] scores = new double[intents.length];
+        HashMap<Integer, Float> query = new HashMap<Integer, Float>();
         double normSquared = 0.0;
         for (Map.Entry<String, Integer> entry : counts.entrySet()) {
-            Feature f = features.get(entry.getKey());
-            if (f == null) continue;
-            double value = entry.getValue().intValue() * f.idf;
+            Integer index = featureIds.get(entry.getKey());
+            if (index == null) continue;
+            double value = (1.0 + Math.log(entry.getValue().intValue())) * idf[index.intValue()];
+            if (value == 0) continue;
+            query.put(index, Float.valueOf((float)value));
             normSquared += value * value;
-            for (int i = 0; i < scores.length; i++) {
-                if (f.weights[i] != 0.0f) scores[i] += value * f.weights[i];
-            }
         }
         if (normSquared <= 0.0000001) return null;
         double norm = Math.sqrt(normSquared);
+        for (Map.Entry<Integer, Float> entry : query.entrySet()) {
+            entry.setValue(Float.valueOf((float)(entry.getValue().floatValue() / norm)));
+        }
+
+        double[] bestByIntent = new double[intents.length];
+        for (int i = 0; i < bestByIntent.length; i++) bestByIntent[i] = 0.0;
+        for (Example example : examples) {
+            double score = 0.0;
+            for (int i = 0; i < example.indexes.length; i++) {
+                Float value = query.get(Integer.valueOf(example.indexes[i]));
+                if (value != null) score += value.floatValue() * example.values[i];
+            }
+            if (score > bestByIntent[example.label]) bestByIntent[example.label] = score;
+        }
         int best = -1;
         double bestScore = -1.0;
         double second = -1.0;
-        for (int i = 0; i < scores.length; i++) {
-            scores[i] /= norm;
-            if (scores[i] > bestScore) {
+        for (int i = 0; i < bestByIntent.length; i++) {
+            if (bestByIntent[i] > bestScore) {
                 second = bestScore;
-                bestScore = scores[i];
+                bestScore = bestByIntent[i];
                 best = i;
-            } else if (scores[i] > second) {
-                second = scores[i];
+            } else if (bestByIntent[i] > second) {
+                second = bestByIntent[i];
             }
         }
         if (best < 0) return null;
-        if (second < 0) second = 0;
+        if (second < 0) second = 0.0;
         return new Prediction(intents[best], bestScore, bestScore - second);
     }
 
     private Map<String, Integer> extractFeatures(String input) {
         String normalized = normalize(input);
-        String[] words = normalized.split(" ");
+        String[] words = normalized.length() == 0 ? new String[0] : normalized.split(" ");
         Map<String, Integer> result = new HashMap<String, Integer>();
         for (String word : words) {
             if (word.length() == 0) continue;
+            increment(result, "w:" + word, 3);
             String padded = "^" + word + "$";
             for (int n = 2; n <= 4; n++) {
                 for (int i = 0; i + n <= padded.length(); i++) {
-                    String gram = padded.substring(i, i + n);
-                    Integer old = result.get(gram);
-                    result.put(gram, Integer.valueOf(old == null ? 1 : old.intValue() + 1));
+                    increment(result, "c:" + padded.substring(i, i + n), 1);
                 }
             }
         }
+        for (int i = 0; i + 1 < words.length; i++) {
+            if (words[i].length() > 0 && words[i + 1].length() > 0) {
+                increment(result, "b:" + words[i] + "_" + words[i + 1], 2);
+            }
+        }
         return result;
+    }
+
+    private void increment(Map<String, Integer> map, String key, int amount) {
+        Integer old = map.get(key);
+        map.put(key, Integer.valueOf((old == null ? 0 : old.intValue()) + amount));
     }
 
     private String normalize(String value) {
@@ -127,13 +176,11 @@ public final class MLIntentModel {
             .replaceAll("\\s+", " ").trim();
     }
 
-    private static final class Feature {
-        final float idf;
-        final float[] weights;
-        Feature(float value, int classes) {
-            idf = value;
-            weights = new float[classes];
-        }
+    private static final class Example {
+        final int label;
+        final int[] indexes;
+        final float[] values;
+        Example(int l, int[] i, float[] v) { label = l; indexes = i; values = v; }
     }
 
     public static final class Prediction {
