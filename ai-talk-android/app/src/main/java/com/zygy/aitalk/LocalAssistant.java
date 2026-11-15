@@ -8,105 +8,139 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Tiny offline Hebrew dialogue engine for very constrained Android devices.
- *
- * This is deliberately not advertised as a generative LLM. It uses compact
- * intent matching and deterministic responses, has no model weights, network,
- * native runtime, or third-party dependencies, and keeps only a tiny amount
- * of conversation state in RAM.
+ * Lightweight offline Hebrew intent engine for Android 4.4 devices.
+ * It uses normalization, phrase variants and tolerant token matching.
+ * It is not a generative language model.
  */
 public final class LocalAssistant {
     private String userName = "";
+    private String lastTopic = "";
 
     public LocalAssistant(Context context) { }
 
     public String reply(String prompt) {
-        if (prompt == null) return "לא קיבלתי הודעה. אפשר לכתוב לי שוב?";
+        if (prompt == null) return "לא שמעתי הודעה. אפשר לנסות שוב?";
         String raw = prompt.trim();
-        if (raw.length() == 0) return "כתוב לי משהו ואנסה לעזור.";
+        if (raw.length() == 0) return "לא התקבלה הודעה. כתוב או אמור משפט קצר.";
         String s = normalize(raw);
 
         String math = calculate(raw);
         if (math != null) return math;
 
-        if (containsAny(s, "שלום", "היי", "אהלן", "בוקר טוב", "ערב טוב", "מה נשמע", "מה קורה")) {
+        if (is(s, "שלום", "היי", "אהלן", "בוקר טוב", "ערב טוב", "מה נשמע", "מה קורה", "הלו")) {
+            lastTopic = "greeting";
             return userName.length() > 0
-                ? "שלום " + userName + "! טוב לשמוע ממך. במה אפשר לעזור?"
-                : "שלום! שמח לדבר איתך. איך קוראים לך?";
+                ? "שלום " + userName + "! טוב לשמוע ממך. מה תרצה לעשות?"
+                : "שלום! אני מקשיב. איך קוראים לך?";
         }
 
-        if (s.matches(".*(קוראים לי|שמי הוא|השם שלי הוא)\\s+.+")) {
-            String candidate = raw.replaceAll(".*(?:קוראים לי|שמי הוא|השם שלי הוא)\\s*", "").trim();
+        if (containsAny(s, "קוראים לי", "שמי", "השם שלי")) {
+            String candidate = raw.replaceAll(".*(?:קוראים לי|שמי הוא|שמי|השם שלי הוא|השם שלי)\\s*", "").trim();
+            candidate = candidate.replaceAll("[.!?,]+$", "").trim();
             if (candidate.length() > 0 && candidate.length() < 32) {
                 userName = candidate;
-                return "נעים להכיר, " + userName + "! אזכור את השם שלך כל עוד האפליקציה פתוחה.";
+                lastTopic = "name";
+                return "נעים להכיר, " + userName + ". אזכור את השם שלך כל עוד האפליקציה פתוחה.";
             }
         }
 
-        if (containsAny(s, "איך קוראים לי", "מה השם שלי")) {
-            return userName.length() > 0 ? "אמרת לי שקוראים לך " + userName + "." : "עוד לא סיפרת לי איך קוראים לך.";
+        if (is(s, "איך קוראים לי", "מה השם שלי", "אתה זוכר את השם שלי")) {
+            return userName.length() > 0 ? "אמרת לי שקוראים לך " + userName + "." : "עוד לא סיפרת לי את שמך. אפשר לומר: קוראים לי...";
         }
 
-        if (containsAny(s, "מי אתה", "מה אתה", "מי זאת", "מה השם שלך")) {
-            return "אני AI Talk, עוזר מקומי קטן שפועל בתוך המכשיר בלי אינטרנט. אני מבין כמה סוגי בקשות בעברית, אבל אני לא מודל שפה גדול ולכן הידע והשיחה שלי מוגבלים.";
+        if (is(s, "מי אתה", "מה אתה", "מה השם שלך", "מי בנה אותך", "מי יצר אותך")) {
+            lastTopic = "identity";
+            return "אני AI Talk, עוזר מקומי קטן שרץ במכשיר בלי אינטרנט. אני מזהה בקשות נפוצות בעברית, אבל איני מודל שפה גדול כמו ChatGPT.";
         }
 
-        if (containsAny(s, "מה אתה יודע לעשות", "במה אתה יכול לעזור", "עזרה", "מה האפשרויות")) {
-            return "אני יכול לנהל שיחה בסיסית בעברית, לזהות ברכות ותודות, לזכור את שמך בזמן שהאפליקציה פתוחה, לענות על שאלות פשוטות ולחשב תרגילים כמו 12*7. אין לי גישה לאינטרנט או למידע עדכני.";
+        if (is(s, "עזרה", "מה אתה יודע לעשות", "במה אתה יכול לעזור", "מה האפשרויות", "מה אפשר לעשות")) {
+            lastTopic = "help";
+            return "אפשר לדבר איתי על השעה והתאריך, לבצע חישובים, לספר בדיחה, לשמור את שמך בזמן שהאפליקציה פתוחה ולשאול שאלות בסיסיות. אפשר גם לנסח מחדש אם לא הבנתי. לדוגמה: כמה זה 25 כפול 4?";
         }
 
-        if (containsAny(s, "מה השעה", "כמה השעה")) {
-            return "השעה במכשיר: " + new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date()) + ".";
+        if (is(s, "מה השעה", "כמה השעה", "תגיד לי מה השעה", "מה השעה עכשיו")) {
+            lastTopic = "time";
+            return "השעה במכשיר היא " + new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date()) + ".";
         }
 
-        if (containsAny(s, "מה התאריך", "איזה יום היום", "מה היום")) {
+        if (is(s, "מה התאריך", "איזה יום היום", "מה היום", "מה התאריך היום", "איזה תאריך היום")) {
+            lastTopic = "date";
             return "לפי שעון המכשיר: " + new SimpleDateFormat("EEEE, d בMMMM yyyy", new Locale("he", "IL")).format(new Date()) + ".";
         }
 
-        if (containsAny(s, "תודה", "תודה רבה", "יישר כח", "אחלה")) {
-            return "בשמחה! אני כאן אם תרצה לשאול עוד משהו.";
+        if (is(s, "תודה", "תודה רבה", "יישר כוח", "אחלה", "מעולה", "מצוין")) {
+            return "בשמחה! רוצה לשאול או לעשות משהו נוסף?";
         }
 
-        if (containsAny(s, "להתראות", "ביי", "לילה טוב", "אני הולך")) {
-            return "להתראות! השיחה המקומית נשמרת רק בזיכרון של האפליקציה.";
+        if (is(s, "להתראות", "ביי", "לילה טוב", "אני הולך", "שלום ולהתראות")) {
+            return "להתראות! שמחתי לדבר איתך.";
         }
 
-        if (containsAny(s, "מי יצר אותך", "מי בנה אותך", "מי פיתח אותך")) {
-            return "האפליקציה AI Talk נבנתה כפרויקט Android קל למכשיר Qin 1S. מנוע השיחה הזה נכתב במיוחד כדי לצרוך מעט זיכרון.";
+        if (is(s, "ספר בדיחה", "תספר בדיחה", "בדיחה", "תגיד בדיחה")) {
+            return "למה המחשב הלך לרופא? כי היה לו וירוס, והוא לא רצה להדביק את כל הרשת!";
         }
 
-        if (containsAny(s, "אתה מחובר לאינטרנט", "יש לך אינטרנט", "אתה עובד בלי אינטרנט")) {
-            return "מנוע השיחה שלי פועל מקומית ואינו שולח הודעות לרשת. זיהוי דיבור והקראה הם שירותים נפרדים של Android, והם עשויים לדרוש שירות מותקן או חיבור.";
+        if (is(s, "אתה מחובר לאינטרנט", "יש לך אינטרנט", "אתה עובד בלי אינטרנט", "אתה פועל בלי רשת")) {
+            return "מנוע השיחה פועל מקומית. זיהוי הדיבור עצמו נעשה על ידי שירות Android נפרד, והוא עשוי לדרוש שירות מתאים או חיבור לרשת.";
         }
 
-        if (containsAny(s, "ספר בדיחה", "תספר בדיחה", "בדיחה")) {
-            return "למה המחשב הלך לרופא? כי היה לו וירוס... והוא לא רצה להדביק את כל הרשת!";
+        if (containsAny(s, "מזג האוויר", "יהיה גשם", "ירד גשם")) {
+            return "אין לי חיבור לתחזית מזג אוויר, ולכן לא אנחש.";
         }
 
-        if (containsAny(s, "מה מזג האוויר", "מזג האוויר", "האם ירד גשם")) {
-            return "אין לי חיבור לשירות מזג אוויר, ולכן איני יכול לבדוק תחזית. אני מעדיף לא להמציא לך תשובה.";
+        if (is(s, "תחזור על זה", "לא הבנתי", "מה אמרת", "תחזור")) {
+            return "אין לי הקלטה של התשובה הקודמת. אפשר לשאול שוב במילים אחרות.";
         }
 
-        if (s.endsWith("?") || containsAny(s, "למה", "איך", "מתי", "איפה", "כמה", "האם")) {
-            return "אני עדיין מנוע קטן עם הבנה מוגבלת, ולא יודע לענות בביטחון על השאלה הזאת בלי להמציא. אפשר לנסח אותה בצורה פשוטה יותר, או לשאול אותי על השעה, התאריך, חישוב או שימוש באפליקציה.";
+        if (s.length() <= 3) return "שמעתי רק מילה קצרה: " + raw + ". אפשר להרחיב קצת?";
+        if (lastTopic.equals("greeting") && containsAny(s, "בסדר", "טוב", "מצוין", "ברוך השם")) {
+            return "יופי! במה תרצה שאעזור?";
         }
 
-        return "קראתי: \"" + raw + "\". אני עדיין לומד לזהות סוגי הודעות. נסה לכתוב שאלה קצרה, לבקש חישוב, או לכתוב „עזרה” כדי לראות מה אני יודע לעשות.";
+        return "אני רוצה להבין אותך נכון, אבל המשפט לא מתאים עדיין לפקודות שאני מכיר. נסה לומר את זה במשפט קצר וברור, או כתוב 'עזרה' לדוגמאות.";
     }
 
     private static String normalize(String value) {
         return value.toLowerCase(new Locale("he", "IL"))
+            .replace('ך', 'כ').replace('ם', 'מ').replace('ן', 'נ').replace('ף', 'פ').replace('ץ', 'צ')
             .replaceAll("[\\u0591-\\u05C7]", "")
-            .replaceAll("[,!.;:׳״\\\"'()\\[\\]{}]", " ")
+            .replaceAll("[,!.;:׳״\\\"'()\\[\\]{}?]", " ")
             .replaceAll("\\s+", " ").trim();
     }
 
-    private static boolean containsAny(String text, String... values) {
-        for (String value : values) if (text.contains(value)) return true;
+    private static boolean is(String text, String... phrases) {
+        for (String phrase : phrases) {
+            String p = normalize(phrase);
+            if (text.equals(p) || text.contains(p)) return true;
+            if (nearPhrase(text, p)) return true;
+        }
         return false;
     }
 
-    // Deliberately limited to a single two-number arithmetic expression.
+    // Tolerates one omitted/extra word in short spoken requests without
+    // matching unrelated long sentences.
+    private static boolean nearPhrase(String text, String phrase) {
+        String[] a = text.split(" ");
+        String[] b = phrase.split(" ");
+        if (a.length < 2 || b.length < 2 || a.length > b.length + 1 || b.length > a.length + 1) return false;
+        int matched = 0;
+        for (String word : b) {
+            for (String candidate : a) {
+                if (word.equals(candidate) || (word.length() >= 4 && candidate.length() >= 4 &&
+                    (word.startsWith(candidate) || candidate.startsWith(word)))) {
+                    matched++;
+                    break;
+                }
+            }
+        }
+        return matched >= Math.max(2, b.length - 1);
+    }
+
+    private static boolean containsAny(String text, String... values) {
+        for (String value : values) if (text.contains(normalize(value))) return true;
+        return false;
+    }
+
     private static String calculate(String input) {
         Matcher m = Pattern.compile(".*?(-?\\d+(?:[.,]\\d+)?)\\s*([+*/xX×÷-])\\s*(-?\\d+(?:[.,]\\d+)?).*").matcher(input);
         if (!m.matches()) return null;
@@ -126,10 +160,8 @@ public final class LocalAssistant {
             String shown = result == Math.rint(result) && Math.abs(result) < 9.0e15
                 ? Long.toString((long) result) : Double.toString(result);
             return "התוצאה היא " + shown + ".";
-        } catch (Exception ignored) {
-            return null;
-        }
+        } catch (Exception ignored) { return null; }
     }
 
-    public void close() { userName = ""; }
+    public void close() { userName = ""; lastTopic = ""; }
 }
