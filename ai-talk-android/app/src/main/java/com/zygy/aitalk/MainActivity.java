@@ -27,6 +27,7 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
     private int screenWidth;
     private String geminiApiKey = "";
     private TextView aiStatus;
+    private TextView privacyHint;
     private boolean cloudBusy = false;
     private final ArrayList<GeminiApiClient.ChatTurn> cloudHistory = new ArrayList<GeminiApiClient.ChatTurn>();
 
@@ -102,10 +103,10 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         chatScroll.addView(messages, new ScrollView.LayoutParams(-1, -2));
         page.addView(chatScroll, new LinearLayout.LayoutParams(-1, 0, 1));
 
-        TextView hint = text("השיחה נשארת במכשיר", 10, 0xff81939b);
-        hint.setGravity(Gravity.CENTER);
-        hint.setPadding(0, dp(3), 0, dp(4));
-        page.addView(hint, new LinearLayout.LayoutParams(-1, -2));
+        privacyHint = text(geminiApiKey.length() > 0 ? "הודעות נשלחות ל-Google AI" : "השיחה נשארת במכשיר", 10, 0xff81939b);
+        privacyHint.setGravity(Gravity.CENTER);
+        privacyHint.setPadding(0, dp(3), 0, dp(4));
+        page.addView(privacyHint, new LinearLayout.LayoutParams(-1, -2));
 
         LinearLayout composer = new LinearLayout(this);
         composer.setOrientation(LinearLayout.HORIZONTAL);
@@ -229,7 +230,7 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
 
         new AlertDialog.Builder(this)
             .setTitle("חיבור למודל AI אמיתי")
-            .setMessage("אפשר להפעיל תשובות חכמות דרך האינטרנט. הדבק מפתח מ-Google AI Studio. בלי מפתח האפליקציה תמשיך לפעול במצב המקומי. הבקשות נשלחות ל-Google.")
+            .setMessage("אפשר להפעיל תשובות חכמות דרך האינטרנט. הדבק מפתח מ-Google AI Studio. בלי מפתח האפליקציה תמשיך לפעול במצב המקומי. הבקשות נשלחות ל-Google. במסלול החינמי ייתכן שימוש בתוכן לשיפור השירות.")
             .setView(keyField)
             .setPositiveButton("שמור", new android.content.DialogInterface.OnClickListener() {
                 public void onClick(android.content.DialogInterface dialog, int which) {
@@ -238,6 +239,7 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
                         .putString("gemini_api_key", geminiApiKey).commit();
                     cloudHistory.clear();
                     if (aiStatus != null) aiStatus.setText(geminiApiKey.length() > 0 ? "● AI ⚙" : "● מקומי ⚙");
+                    if (privacyHint != null) privacyHint.setText(geminiApiKey.length() > 0 ? "הודעות נשלחות ל-Google AI" : "השיחה נשארת במכשיר");
                     Toast.makeText(MainActivity.this,
                         geminiApiKey.length() > 0 ? "המודל המקוון הופעל" : "הוחזר מצב מקומי",
                         Toast.LENGTH_LONG).show();
