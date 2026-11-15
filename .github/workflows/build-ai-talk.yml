@@ -9,23 +9,27 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - uses: actions/checkout@v4
 
-      # Current Android command-line tools require JDK 17.
-      - name: Set up JDK 17 for Android SDK tools
+      # sdkmanager shipped on GitHub's Ubuntu runner needs JDK 17.
+      - name: Set up JDK 17 for Android SDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # Avoid android-actions/setup-android: its legacy "tools" package
+      # is no longer published and causes the setup action to fail.
+      - name: Accept Android SDK licenses and install required packages
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" --licenses || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-29" "build-tools;29.0.3"
 
-      - name: Install Android SDK packages
-        run: sdkmanager "platforms;android-29" "build-tools;29.0.3"
-
-      # Keep the legacy Gradle/AGP toolchain on its supported JDK.
+      # AGP 4.2.2 / Gradle 6.7.1 are kept on JDK 11.
       - name: Set up JDK 11 for Gradle
         uses: actions/setup-java@v4
         with:
