@@ -1,7 +1,6 @@
 package com.zygy.aitalk;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.os.Bundle;
 import android.content.Intent;
 import android.speech.RecognizerIntent;
@@ -25,20 +24,14 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
     private static final int SPEECH_REQUEST = 41;
     private LocalAssistant assistant;
     private int screenWidth;
-    private String geminiApiKey = "";
-    private TextView aiStatus;
-    private TextView privacyHint;
-    private boolean cloudBusy = false;
-    private final ArrayList<GeminiApiClient.ChatTurn> cloudHistory = new ArrayList<GeminiApiClient.ChatTurn>();
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         assistant = new LocalAssistant(this);
-        geminiApiKey = getSharedPreferences("ai_talk_settings", MODE_PRIVATE).getString("gemini_api_key", "");
         tts = new TextToSpeech(this, this);
         screenWidth = getResources().getDisplayMetrics().widthPixels;
         buildUi();
-        addMessage("AI Talk", geminiApiKey.length() > 0 ? "שלום! המודל המקוון מחובר. אפשר לדבר איתי בעברית." : "שלום! כרגע אני במצב מקומי. כדי לחבר מודל AI חכם יותר, לחץ למעלה על „● מקומי” והזן מפתח AI. אפשר גם להמשיך להשתמש בי ללא אינטרנט.", false);
+        addMessage("AI Talk • אופליין", "שלום! אני פועל במכשיר בלבד. אין צורך באינטרנט או במפתח API. אפשר לכתוב לי בעברית או לנסות את כפתור המיקרופון אם מותקן במכשיר זיהוי דיבור לא מקוון.", false);
     }
 
     private int dp(float value) {
@@ -87,11 +80,8 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         heading.addView(subtitle);
         header.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
 
-        aiStatus = text(geminiApiKey.length() > 0 ? "● AI ⚙" : "● מקומי ⚙", 10, 0xff80cbc4);
+        TextView aiStatus = text("● אופליין", 10, 0xff80cbc4);
         header.addView(aiStatus);
-        aiStatus.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) { openAiSettings(); }
-        });
         page.addView(header, new LinearLayout.LayoutParams(-1, -2));
 
         chatScroll = new ScrollView(this);
@@ -103,7 +93,7 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         chatScroll.addView(messages, new ScrollView.LayoutParams(-1, -2));
         page.addView(chatScroll, new LinearLayout.LayoutParams(-1, 0, 1));
 
-        privacyHint = text(geminiApiKey.length() > 0 ? "הודעות נשלחות ל-Google AI" : "השיחה נשארת במכשיר", 10, 0xff81939b);
+        TextView privacyHint = text("השיחה נשארת במכשיר • ללא אינטרנט", 10, 0xff81939b);
         privacyHint.setGravity(Gravity.CENTER);
         privacyHint.setPadding(0, dp(3), 0, dp(4));
         page.addView(privacyHint, new LinearLayout.LayoutParams(-1, -2));
@@ -156,106 +146,16 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
     }
 
     private void sendText() {
-        final String value = input.getText().toString().trim();
+        String value = input.getText().toString().trim();
         if (value.length() == 0) return;
-        if (geminiApiKey != null && geminiApiKey.trim().length() > 0 && cloudBusy) {
-            Toast.makeText(this, "המתן לתשובת ה-AI הקודמת", Toast.LENGTH_SHORT).show();
-            return;
-        }
         input.setText("");
         addMessage("אתה", value, true);
         try {
             ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(input.getWindowToken(), 0);
         } catch (Exception ignored) {}
-
-        if (geminiApiKey == null || geminiApiKey.trim().length() == 0) {
-            String answer = assistant.reply(value);
-            addMessage("AI Talk • מקומי", answer, false);
-            speak(answer);
-            return;
-        }
-
-        cloudHistory.add(new GeminiApiClient.ChatTurn("user", value));
-        trimCloudHistory();
-        cloudBusy = true;
-        final TextView responseBubble = addMessage("AI Talk • מודל מקוון", "חושב...", false);
-        ArrayList<GeminiApiClient.ChatTurn> requestHistory = new ArrayList<GeminiApiClient.ChatTurn>(cloudHistory);
-        new GeminiApiClient(geminiApiKey).ask(requestHistory, new GeminiApiClient.Callback() {
-            public void onSuccess(final String answer) {
-                runOnUiThread(new Runnable() {
-                    public void run() {
-                        cloudBusy = false;
-                        responseBubble.setText(answer);
-                        cloudHistory.add(new GeminiApiClient.ChatTurn("model", answer));
-                        trimCloudHistory();
-                        speak(answer);
-                    }
-                });
-            }
-            public void onError(final String error) {
-                runOnUiThread(new Runnable() {
-                    public void run() {
-                        cloudBusy = false;
-                        if (cloudHistory.size() > 0 && cloudHistory.get(cloudHistory.size() - 1).role.equals("user")) {
-                            cloudHistory.remove(cloudHistory.size() - 1);
-                        }
-                        String localAnswer = assistant.reply(value);
-                        responseBubble.setText("המודל המקוון לא זמין כרגע. עברתי לתשובה מקומית.\n\n" + localAnswer + "\n\nפרטים: " + error);
-                        speak(localAnswer);
-                    }
-                });
-            }
-        });
-    }
-
-    private void trimCloudHistory() {
-        while (cloudHistory.size() > 12) {
-            if (cloudHistory.size() > 1) {
-                cloudHistory.remove(0);
-                cloudHistory.remove(0);
-            } else {
-                cloudHistory.clear();
-            }
-        }
-    }
-
-    private void openAiSettings() {
-        final EditText keyField = new EditText(this);
-        keyField.setSingleLine(true);
-        keyField.setTextSize(13);
-        keyField.setHint("הדבק מפתח Gemini API");
-        keyField.setInputType(129);
-        keyField.setText(geminiApiKey);
-        keyField.setSelection(keyField.length());
-
-        new AlertDialog.Builder(this)
-            .setTitle("חיבור למודל AI אמיתי")
-            .setMessage("אפשר להפעיל תשובות חכמות דרך האינטרנט. הדבק מפתח מ-Google AI Studio. בלי מפתח האפליקציה תמשיך לפעול במצב המקומי. הבקשות נשלחות ל-Google. במסלול החינמי ייתכן שימוש בתוכן לשיפור השירות.")
-            .setView(keyField)
-            .setPositiveButton("שמור", new android.content.DialogInterface.OnClickListener() {
-                public void onClick(android.content.DialogInterface dialog, int which) {
-                    geminiApiKey = keyField.getText().toString().trim();
-                    getSharedPreferences("ai_talk_settings", MODE_PRIVATE).edit()
-                        .putString("gemini_api_key", geminiApiKey).commit();
-                    cloudHistory.clear();
-                    if (aiStatus != null) aiStatus.setText(geminiApiKey.length() > 0 ? "● AI ⚙" : "● מקומי ⚙");
-                    if (privacyHint != null) privacyHint.setText(geminiApiKey.length() > 0 ? "הודעות נשלחות ל-Google AI" : "השיחה נשארת במכשיר");
-                    Toast.makeText(MainActivity.this,
-                        geminiApiKey.length() > 0 ? "המודל המקוון הופעל" : "הוחזר מצב מקומי",
-                        Toast.LENGTH_LONG).show();
-                }
-            })
-            .setNegativeButton("ביטול", null)
-            .setNeutralButton("יצירת מפתח", new android.content.DialogInterface.OnClickListener() {
-                public void onClick(android.content.DialogInterface dialog, int which) {
-                    try {
-                        startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://aistudio.google.com/apikey")));
-                    } catch (Exception ignored) {
-                        Toast.makeText(MainActivity.this, "לא ניתן לפתוח את הדפדפן", Toast.LENGTH_SHORT).show();
-                    }
-                }
-            })
-            .show();
+        String answer = assistant.reply(value);
+        addMessage("AI Talk • אופליין", answer, false);
+        speak(answer);
     }
 
     private void startSpeech() {
