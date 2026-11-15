@@ -527,7 +527,7 @@ public final class LocalAssistant {
     private boolean isOneOf(String s,String... words) { for(String w:words) if(s.equals(norm(w))) return true; return false; }
 
     private String calculate(String input) {
-        String s = norm(input);
+        String s = input.toLowerCase(new Locale("he","IL")).replaceAll("[\\u0591-\\u05C7]","");
         try {
             Matcher percent = Pattern.compile(".*?(\\d+(?:[.,]\\d+)?)\\s*(?:%|אחוז(?:ים)?)\\s*(?:מ|מתוך)\\s*(\\d+(?:[.,]\\d+)?).*").matcher(s);
             if (percent.matches()) return "התוצאה היא " + formatNumber(parseNumber(percent.group(1)) * parseNumber(percent.group(2)) / 100.0) + ".";
@@ -565,7 +565,7 @@ public final class LocalAssistant {
     }
 
     private String convertUnits(String input) {
-        String s = norm(input);
+        String s = input.toLowerCase(new Locale("he","IL")).replaceAll("[\\u0591-\\u05C7]","");
         Matcher m = Pattern.compile(".*?(\\d+(?:[.,]\\d+)?)\\s*(קילומטרים|קילומטר|קמ|מטרים|מטר|סנטימטרים|סנטימטר|סמ|קילוגרמים|קילוגרם|קג|גרמים|גרם|ליטרים|ליטר|מיליליטרים|מיליליטר|דקות|דקה|שעות|שעה)\\s*(?:ל|ב|אל)\\s*(קילומטרים|קילומטר|קמ|מטרים|מטר|סנטימטרים|סנטימטר|סמ|קילוגרמים|קילוגרם|קג|גרמים|גרם|ליטרים|ליטר|מיליליטרים|מיליליטר|דקות|דקה|שעות|שעה).*").matcher(s);
         if (!m.matches()) return null;
         double value;
