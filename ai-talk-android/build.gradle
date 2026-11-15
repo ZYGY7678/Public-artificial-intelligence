@@ -1,5 +1,11 @@
-plugins {
-    id 'com.android.application' version '4.2.2' apply false
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:4.2.2'
+    }
 }
 
 allprojects {
