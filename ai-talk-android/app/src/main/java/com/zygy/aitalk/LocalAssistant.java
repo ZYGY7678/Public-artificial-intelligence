@@ -2,166 +2,196 @@ package com.zygy.aitalk;
 
 import android.content.Context;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.*;
+import java.util.regex.*;
 
 /**
- * Lightweight offline Hebrew intent engine for Android 4.4 devices.
- * It uses normalization, phrase variants and tolerant token matching.
- * It is not a generative language model.
+ * Offline Hebrew semantic model for very low-memory Android devices.
+ * Local example corpus + synonym concepts + token normalization + weighted
+ * similarity. No network calls, cloud services, or external model files.
  */
 public final class LocalAssistant {
+    private final Map<String, ArrayList<String[]>> model = new LinkedHashMap<String, ArrayList<String[]>>();
+    private final Map<String, String> synonyms = new HashMap<String, String>();
     private String userName = "";
-    private String lastTopic = "";
+    private String lastIntent = "";
 
-    public LocalAssistant(Context context) { }
+    public LocalAssistant(Context context) {
+        concept("שלום","היי","הי","אהלן","שלומות","הלו");
+        concept("זמן","שעה","שעון","כרגע","עכשיו","מתי");
+        concept("תאריך","יום","היום","מחר","אתמול","לוח");
+        concept("זהות","מי","אתה","רובוט","בינה","עוזר","תוכנה","יוצר","נוצר");
+        concept("עזרה","עזור","לעזור","סיוע","אפשרויות","יכולת","מסוגל","יודע","תפריט");
+        concept("תודה","מודה","מעריך","יישר","כוח","תבורכו");
+        concept("פרידה","להתראות","ביי","נתראה","הולך","יוצא");
+        concept("בדיחה","צחוק","מצחיק","הומור","תצחיק");
+        concept("רשת","אינטרנט","מקוון","אונליין","וויפיי","wifi","חיבור");
+        concept("מזג","אוויר","גשם","תחזית","עננים","מעלות","קר","חם");
+        concept("חזרה","שוב","חזור","הסבר","קודם","להסביר");
+        concept("מצב","שלומך","מרגיש","טוב","בסדר","מעולה","נהדר","סבבה","יופי");
+        concept("שם","קוראים","שמי","כינוי");
+        concept("זיכרון","זוכר","לזכור","שכחת","שכח");
+        concept("מוזיקה","שיר","שירים","זמר","נגינה","מנגינה");
+        concept("מקום","איפה","מיקום","עיר","מדינה","כתובת","נמצא");
+        concept("אוכל","רעב","לאכול","ארוחה","שתייה","צמא");
+        concept("עבודה","משימה","לבצע","לעשות","פרויקט","פעולה");
+        concept("הבנה","מבין","הבנת","להבין","כוונה","התכוונתי","מפרש");
+        concept("מחמאה","חכם","כל","הכבוד","מעולה","אהבתי");
+
+        add("greeting","שלום","היי מה נשמע","אהלן מה קורה","בוקר טוב","ערב טוב","מה העניינים","מה שלומך","הלו אתה שם","רציתי להגיד לך היי","שלום לך מה קורה");
+        add("identity","מי אתה","מה אתה בעצם","איך קוראים לך","מה השם שלך","אתה בן אדם או מחשב","אתה רובוט","מי יצר אותך","מי בנה אותך","ספר לי על עצמך","מה התפקיד שלך");
+        add("help","מה אתה יודע לעשות","במה אתה יכול לעזור לי","איזה דברים אפשר לשאול אותך","מה האפשרויות שלך","איך משתמשים בך","תן לי עזרה","מה היכולות שלך","תן דוגמאות");
+        add("time","מה השעה","כמה השעה עכשיו","מה הזמן כרגע","תגיד לי מה השעה","תבדוק את השעון","אפשר לדעת מה השעה");
+        add("date","איזה יום היום","מה התאריך של היום","תגיד לי מה התאריך","באיזה יום אנחנו","איזה תאריך היום");
+        add("thanks","תודה","תודה רבה לך","אני מודה לך","יישר כוח","מעריך את העזרה שלך","תודה על הכל");
+        add("bye","להתראות","ביי נדבר אחר כך","אני צריך ללכת","לילה טוב","נתראה בהמשך","סיימנו ביי");
+        add("joke","ספר לי בדיחה","תצחיק אותי","יש לך משהו מצחיק","אני רוצה לשמוע בדיחה","תגיד משהו מצחיק");
+        add("internet","אתה עובד בלי אינטרנט","יש לך חיבור לרשת","האם אתה מחובר לאינטרנט","אפשר לדבר איתך במצב טיסה","אתה צריך וויפיי");
+        add("weather","מה מזג האוויר היום","האם ירד גשם מחר","יהיה קר בחוץ","תן לי תחזית מזג אוויר","כמה מעלות עכשיו");
+        add("repeat","תחזור על מה שאמרת","לא הבנתי את התשובה","תגיד את זה שוב","אפשר הסבר נוסף","מה אמרת קודם","תסביר במילים אחרות");
+        add("mood","מה שלומך היום","איך אתה מרגיש","מה מצבך","הכל טוב אצלך","אתה שמח");
+        add("name_ask","איך קוראים לי","מה השם שלי","אתה זוכר איך קוראים לי","מה אמרתי שקוראים לי");
+        add("memory","אתה זוכר אותי","מה אתה זוכר עלי","מה סיפרתי לך","אתה זוכר מה אמרתי קודם");
+        add("music","בוא נדבר על מוזיקה","אני אוהב שירים","אתה מכיר שירים","אפשר לדבר על נגינה");
+        add("location","איפה אני נמצא","מה המיקום שלי","באיזו עיר אני","אתה יודע איפה אני גר");
+        add("food","אני רעב","מה אפשר לאכול","בוא נדבר על אוכל","בא לי ארוחה","אני צמא");
+        add("work","תעזור לי במשימה","אני צריך לעשות משהו","בוא נתחיל לעבוד","יש לי פרויקט","אני רוצה שתבצע פעולה");
+        add("understanding","אתה לא מבין אותי","למה אתה לא מבין מה אני אומר","לא לזה התכוונתי","אתה מפרש אותי לא נכון","הבנת מה ביקשתי");
+        add("compliment","אתה חכם","כל הכבוד לך","עבודה טובה","אהבתי את התשובה","אתה מעולה");
+    }
+
+    private void concept(String key, String... words) {
+        for (String w : words) synonyms.put(norm(w), norm(key));
+    }
+    private void add(String intent, String... phrases) {
+        ArrayList<String[]> list = model.get(intent);
+        if (list == null) { list = new ArrayList<String[]>(); model.put(intent, list); }
+        for (String p : phrases) list.add(tokens(p));
+    }
 
     public String reply(String prompt) {
-        if (prompt == null) return "לא שמעתי הודעה. אפשר לנסות שוב?";
-        String raw = prompt.trim();
-        if (raw.length() == 0) return "לא התקבלה הודעה. כתוב או אמור משפט קצר.";
-        String s = normalize(raw);
-
+        if (prompt == null || prompt.trim().length() == 0) return "לא קיבלתי משפט. אפשר לנסח שוב?";
+        String raw = prompt.trim(), n = norm(raw);
         String math = calculate(raw);
         if (math != null) return math;
 
-        if (is(s, "שלום", "היי", "אהלן", "בוקר טוב", "ערב טוב", "מה נשמע", "מה קורה", "הלו")) {
-            lastTopic = "greeting";
-            return userName.length() > 0
-                ? "שלום " + userName + "! טוב לשמוע ממך. מה תרצה לעשות?"
-                : "שלום! אני מקשיב. איך קוראים לך?";
-        }
-
-        if (containsAny(s, "קוראים לי", "שמי", "השם שלי")) {
-            String candidate = raw.replaceAll(".*(?:קוראים לי|שמי הוא|שמי|השם שלי הוא|השם שלי)\\s*", "").trim();
-            candidate = candidate.replaceAll("[.!?,]+$", "").trim();
-            if (candidate.length() > 0 && candidate.length() < 32) {
-                userName = candidate;
-                lastTopic = "name";
+        if (n.matches(".*(קוראים לי|שמי הוא|שמי|השם שלי הוא|אני נקרא) .+")) {
+            String candidate = raw.replaceAll(".*(?:קוראים לי|שמי הוא|שמי|השם שלי הוא|אני נקרא)\\s*", "").replaceAll("[.!?,]+$", "").trim();
+            if (candidate.length() > 0 && candidate.length() < 35) {
+                userName = candidate; lastIntent = "name_set";
                 return "נעים להכיר, " + userName + ". אזכור את השם שלך כל עוד האפליקציה פתוחה.";
             }
         }
 
-        if (is(s, "איך קוראים לי", "מה השם שלי", "אתה זוכר את השם שלי")) {
-            return userName.length() > 0 ? "אמרת לי שקוראים לך " + userName + "." : "עוד לא סיפרת לי את שמך. אפשר לומר: קוראים לי...";
+        Match match = understand(raw);
+        if (match.score < 0.20) {
+            if (lastIntent.equals("greeting") && has(n,"בסדר","טוב","מצוין","ברוך השם","סבבה")) return "יופי, שמח לשמוע. על מה תרצה לדבר?";
+            if (lastIntent.equals("understanding")) return "אני מנסה להבין אותך. תן לי דוגמה למה שהתכוונת או כתוב מה תרצה שאעשה.";
+            return "אני עדיין לא בטוח שהבנתי את הכוונה. אפשר לנסח במילים אחרות? אני לומד לזהות משמעות של משפטים, לא רק מילים בודדות.";
         }
-
-        if (is(s, "מי אתה", "מה אתה", "מה השם שלך", "מי בנה אותך", "מי יצר אותך")) {
-            lastTopic = "identity";
-            return "אני AI Talk, עוזר מקומי קטן שרץ במכשיר בלי אינטרנט. אני מזהה בקשות נפוצות בעברית, אבל איני מודל שפה גדול כמו ChatGPT.";
-        }
-
-        if (is(s, "עזרה", "מה אתה יודע לעשות", "במה אתה יכול לעזור", "מה האפשרויות", "מה אפשר לעשות")) {
-            lastTopic = "help";
-            return "אפשר לדבר איתי על השעה והתאריך, לבצע חישובים, לספר בדיחה, לשמור את שמך בזמן שהאפליקציה פתוחה ולשאול שאלות בסיסיות. אפשר גם לנסח מחדש אם לא הבנתי. לדוגמה: כמה זה 25 כפול 4?";
-        }
-
-        if (is(s, "מה השעה", "כמה השעה", "תגיד לי מה השעה", "מה השעה עכשיו")) {
-            lastTopic = "time";
-            return "השעה במכשיר היא " + new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date()) + ".";
-        }
-
-        if (is(s, "מה התאריך", "איזה יום היום", "מה היום", "מה התאריך היום", "איזה תאריך היום")) {
-            lastTopic = "date";
-            return "לפי שעון המכשיר: " + new SimpleDateFormat("EEEE, d בMMMM yyyy", new Locale("he", "IL")).format(new Date()) + ".";
-        }
-
-        if (is(s, "תודה", "תודה רבה", "יישר כוח", "אחלה", "מעולה", "מצוין")) {
-            return "בשמחה! רוצה לשאול או לעשות משהו נוסף?";
-        }
-
-        if (is(s, "להתראות", "ביי", "לילה טוב", "אני הולך", "שלום ולהתראות")) {
-            return "להתראות! שמחתי לדבר איתך.";
-        }
-
-        if (is(s, "ספר בדיחה", "תספר בדיחה", "בדיחה", "תגיד בדיחה")) {
-            return "למה המחשב הלך לרופא? כי היה לו וירוס, והוא לא רצה להדביק את כל הרשת!";
-        }
-
-        if (is(s, "אתה מחובר לאינטרנט", "יש לך אינטרנט", "אתה עובד בלי אינטרנט", "אתה פועל בלי רשת")) {
-            return "מנוע השיחה פועל מקומית. זיהוי הדיבור עצמו נעשה על ידי שירות Android נפרד, והוא עשוי לדרוש שירות מתאים או חיבור לרשת.";
-        }
-
-        if (containsAny(s, "מזג האוויר", "יהיה גשם", "ירד גשם")) {
-            return "אין לי חיבור לתחזית מזג אוויר, ולכן לא אנחש.";
-        }
-
-        if (is(s, "תחזור על זה", "לא הבנתי", "מה אמרת", "תחזור")) {
-            return "אין לי הקלטה של התשובה הקודמת. אפשר לשאול שוב במילים אחרות.";
-        }
-
-        if (s.length() <= 3) return "שמעתי רק מילה קצרה: " + raw + ". אפשר להרחיב קצת?";
-        if (lastTopic.equals("greeting") && containsAny(s, "בסדר", "טוב", "מצוין", "ברוך השם")) {
-            return "יופי! במה תרצה שאעזור?";
-        }
-
-        return "אני רוצה להבין אותך נכון, אבל המשפט לא מתאים עדיין לפקודות שאני מכיר. נסה לומר את זה במשפט קצר וברור, או כתוב 'עזרה' לדוגמאות.";
+        String intent = match.intent;
+        lastIntent = intent;
+        if (intent.equals("greeting")) return userName.length()>0 ? "שלום " + userName + "! מה תרצה לעשות היום?" : "שלום! טוב שבאת. על מה נדבר?";
+        if (intent.equals("identity")) return "אני AI Talk, מודל הבנת שפה מקומי קטן. אני מנתח מילים, מילים דומות והקשר כדי לזהות את משמעות המשפט, והכול פועל בלי אינטרנט.";
+        if (intent.equals("help")) return "אפשר לדבר איתי בעברית, לשאול שאלות בסיסיות, לבצע חישובים, לקבל שעה ותאריך, לספר בדיחה ולשוחח על נושאים יומיומיים. אני מנסה להבין גם ניסוחים שונים לאותה כוונה.";
+        if (intent.equals("time")) return "השעה עכשיו לפי שעון המכשיר: " + new SimpleDateFormat("HH:mm", new Locale("he","IL")).format(new Date()) + ".";
+        if (intent.equals("date")) return "היום לפי שעון המכשיר: " + new SimpleDateFormat("EEEE, d בMMMM yyyy", new Locale("he","IL")).format(new Date()) + ".";
+        if (intent.equals("thanks") || intent.equals("compliment")) return "בשמחה! טוב שהצלחתי לעזור. מה תרצה לעשות עכשיו?";
+        if (intent.equals("bye")) return "להתראות! אשמח להמשיך לדבר כשתחזור.";
+        if (intent.equals("joke")) return "למה המחשב הלך לרופא? כי היה לו וירוס והוא לא רצה להדביק את כל הרשת!";
+        if (intent.equals("internet")) return "מנוע ההבנה פועל מקומית ללא אינטרנט. זיהוי הדיבור והקראת הטקסט תלויים בשירותים שמותקנים באנדרואיד.";
+        if (intent.equals("weather")) return "אין לי נתוני מזג אוויר חיים, ולכן לא אמציא תחזית.";
+        if (intent.equals("repeat")) return "בשמחה. איזה חלק תרצה שאסביר שוב? אפשר גם לכתוב מה לא היה ברור.";
+        if (intent.equals("mood")) return "אני כאן ומוכן לעזור 🙂 ומה שלומך?";
+        if (intent.equals("name_ask")) return userName.length()>0 ? "אמרת לי שקוראים לך " + userName + "." : "עוד לא סיפרת לי את שמך. אפשר לומר: קוראים לי...";
+        if (intent.equals("memory")) return userName.length()>0 ? "בשיחה הזאת סיפרת לי שקוראים לך " + userName + ". הזיכרון נמחק כשסוגרים את האפליקציה." : "אני זוכר רק את השיחה הפתוחה. עוד לא סיפרת לי את שמך.";
+        if (intent.equals("music")) return "אפשר לדבר על מוזיקה. איזה שיר, זמר או כלי נגינה מעניינים אותך?";
+        if (intent.equals("location")) return "אין לי גישה למיקום המכשיר, ולכן איני יודע היכן אתה נמצא.";
+        if (intent.equals("food")) return "בכיף, נדבר על אוכל. אתה מחפש רעיון לארוחה, מתכון או סתם משוחח?";
+        if (intent.equals("work")) return "בשמחה. תאר לי מה אתה רוצה להשיג, ואנסה לחלק את המשימה לשלבים.";
+        if (intent.equals("understanding")) return "אני מבין שאתה אומר שלא קלטתי את הכוונה. המודל המקומי עדיין מוגבל, אבל אנסה שוב. מה בדיוק רצית שאעשה?";
+        return "אני מקשיב. ספר לי עוד קצת.";
     }
 
-    private static String normalize(String value) {
-        return value.toLowerCase(new Locale("he", "IL"))
-            .replace('ך', 'כ').replace('ם', 'מ').replace('ן', 'נ').replace('ף', 'פ').replace('ץ', 'צ')
-            .replaceAll("[\\u0591-\\u05C7]", "")
-            .replaceAll("[,!.;:׳״\\\"'()\\[\\]{}?]", " ")
-            .replaceAll("\\s+", " ").trim();
-    }
-
-    private static boolean is(String text, String... phrases) {
-        for (String phrase : phrases) {
-            String p = normalize(phrase);
-            if (text.equals(p) || text.contains(p)) return true;
-            if (nearPhrase(text, p)) return true;
+    private Match understand(String input) {
+        String[] query = tokens(input);
+        Match best = new Match();
+        for (Map.Entry<String,ArrayList<String[]>> entry : model.entrySet()) {
+            double score = 0;
+            for (String[] example : entry.getValue()) score = Math.max(score, similarity(query, example));
+            if (score > best.score) { best.score = score; best.intent = entry.getKey(); }
         }
-        return false;
+        return best;
     }
 
-    // Tolerates one omitted/extra word in short spoken requests without
-    // matching unrelated long sentences.
-    private static boolean nearPhrase(String text, String phrase) {
-        String[] a = text.split(" ");
-        String[] b = phrase.split(" ");
-        if (a.length < 2 || b.length < 2 || a.length > b.length + 1 || b.length > a.length + 1) return false;
-        int matched = 0;
-        for (String word : b) {
-            for (String candidate : a) {
-                if (word.equals(candidate) || (word.length() >= 4 && candidate.length() >= 4 &&
-                    (word.startsWith(candidate) || candidate.startsWith(word)))) {
-                    matched++;
-                    break;
-                }
-            }
+    private double similarity(String[] a, String[] b) {
+        if (a.length == 0 || b.length == 0) return 0;
+        Map<String,Integer> x = counts(a), y = counts(b);
+        double dot=0, nx=0, ny=0;
+        HashSet<String> terms = new HashSet<String>(); terms.addAll(x.keySet()); terms.addAll(y.keySet());
+        for (String t : terms) {
+            double vx = weight(t, x.containsKey(t)?x.get(t):0), vy = weight(t, y.containsKey(t)?y.get(t):0);
+            dot += vx*vy; nx += vx*vx; ny += vy*vy;
         }
-        return matched >= Math.max(2, b.length - 1);
+        double cosine = nx==0 || ny==0 ? 0 : dot/(Math.sqrt(nx)*Math.sqrt(ny));
+        int common=0; for (String t:x.keySet()) if (y.containsKey(t)) common++;
+        double coverage = (double)common/Math.max(1,Math.min(x.size(),y.size()));
+        return cosine*0.78 + coverage*0.22;
     }
 
-    private static boolean containsAny(String text, String... values) {
-        for (String value : values) if (text.contains(normalize(value))) return true;
-        return false;
+    private double weight(String t,int count) {
+        if (count==0) return 0;
+        double w = t.length()<=1 ? 0.25 : 1.0;
+        if (t.equals("מה") || t.equals("איך") || t.equals("אני") || t.equals("אתה")) w=0.35;
+        return w*(1.0+Math.log(count));
     }
+    private Map<String,Integer> counts(String[] a) {
+        HashMap<String,Integer> m=new HashMap<String,Integer>();
+        for(String t:a) m.put(t,m.containsKey(t)?m.get(t)+1:1);
+        return m;
+    }
+    private String[] tokens(String value) {
+        String[] raw=norm(value).split(" ");
+        ArrayList<String> out=new ArrayList<String>();
+        for(String w:raw) {
+            if(w.length()==0 || stop(w)) continue;
+            if(synonyms.containsKey(w)) w=synonyms.get(w);
+            w=stem(w);
+            if(w.length()>0) out.add(w);
+        }
+        return out.toArray(new String[out.size()]);
+    }
+    private String stem(String w) {
+        if(w.length()>4 && (w.startsWith("וה") || w.startsWith("כש") || w.startsWith("שה"))) w=w.substring(1);
+        if(w.length()>4 && "בלמכוהש".indexOf(w.charAt(0))>=0) w=w.substring(1);
+        if(w.length()>5 && (w.endsWith("ים") || w.endsWith("ות") || w.endsWith("תי"))) w=w.substring(0,w.length()-2);
+        return w;
+    }
+    private boolean stop(String w) {
+        return w.equals("של")||w.equals("את")||w.equals("על")||w.equals("עם")||w.equals("לי")||
+            w.equals("לך")||w.equals("זה")||w.equals("זאת")||w.equals("הוא")||w.equals("היא")||
+            w.equals("גם")||w.equals("רק")||w.equals("אם")||w.equals("כי")||w.equals("אז");
+    }
+    private String norm(String s) {
+        return s.toLowerCase(new Locale("he","IL")).replace('ך','כ').replace('ם','מ').replace('ן','נ').replace('ף','פ').replace('ץ','צ')
+            .replaceAll("[\\u0591-\\u05C7]","").replaceAll("[^\\p{L}\\p{N} +*/xX×÷.,-]"," ").replaceAll("\\s+"," ").trim();
+    }
+    private boolean has(String s,String... words) { for(String w:words) if(s.contains(norm(w))) return true; return false; }
 
-    private static String calculate(String input) {
-        Matcher m = Pattern.compile(".*?(-?\\d+(?:[.,]\\d+)?)\\s*([+*/xX×÷-])\\s*(-?\\d+(?:[.,]\\d+)?).*").matcher(input);
-        if (!m.matches()) return null;
+    private String calculate(String input) {
+        Matcher m=Pattern.compile(".*?(-?\\d+(?:[.,]\\d+)?)\\s*([+*/xX×÷-])\\s*(-?\\d+(?:[.,]\\d+)?).*").matcher(input);
+        if(!m.matches()) return null;
         try {
-            double a = Double.parseDouble(m.group(1).replace(',', '.'));
-            double b = Double.parseDouble(m.group(3).replace(',', '.'));
-            double result;
-            String op = m.group(2);
-            if ("+".equals(op)) result = a + b;
-            else if ("-".equals(op)) result = a - b;
-            else if ("*".equals(op) || "x".equalsIgnoreCase(op) || "×".equals(op)) result = a * b;
-            else {
-                if (b == 0) return "אי אפשר לחלק באפס.";
-                result = a / b;
-            }
-            if (Double.isNaN(result) || Double.isInfinite(result)) return null;
-            String shown = result == Math.rint(result) && Math.abs(result) < 9.0e15
-                ? Long.toString((long) result) : Double.toString(result);
-            return "התוצאה היא " + shown + ".";
-        } catch (Exception ignored) { return null; }
+            double a=Double.parseDouble(m.group(1).replace(',','.')), b=Double.parseDouble(m.group(3).replace(',','.')), r;
+            String op=m.group(2);
+            if(op.equals("+")) r=a+b; else if(op.equals("-")) r=a-b;
+            else if(op.equals("*")||op.equalsIgnoreCase("x")||op.equals("×")) r=a*b;
+            else { if(b==0) return "אי אפשר לחלק באפס."; r=a/b; }
+            if(Double.isNaN(r)||Double.isInfinite(r)) return null;
+            String result=r==Math.rint(r)&&Math.abs(r)<9.0e15?Long.toString((long)r):Double.toString(r);
+            return "התוצאה היא "+result+".";
+        } catch(Exception e) { return null; }
     }
-
-    public void close() { userName = ""; lastTopic = ""; }
+    public void close() { userName=""; lastIntent=""; }
+    private static final class Match { String intent=""; double score=0; }
 }
