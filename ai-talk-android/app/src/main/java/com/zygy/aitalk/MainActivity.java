@@ -25,7 +25,7 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         assistant = new LocalAssistant(this);
         tts = new TextToSpeech(this, this);
         buildUi();
-        addMessage("AI Talk", "ברוך הבא! זו גרסת בדיקת תאימות ל-Qin 1S. מנוע שפה מקומי עדיין לא שולב.", false);
+        addMessage("AI Talk", "ברוך הבא ל-AI Talk! אני עוזר מקומי קטן שעובד בלי אינטרנט. כתוב „עזרה” כדי לראות מה אני יודע לעשות.", false);
     }
 
     private void buildUi() {
