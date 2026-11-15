@@ -6,9 +6,10 @@ import java.util.*;
 import java.util.regex.*;
 
 /**
- * Offline Hebrew semantic model for very low-memory Android devices.
- * Local example corpus + synonym concepts + token normalization + weighted
- * similarity. No network calls, cloud services, or external model files.
+ * Offline Hebrew language-understanding engine for very low-memory Android devices.
+ * It uses local examples, synonym concepts, Hebrew normalization, word similarity
+ * and character n-gram similarity. No network calls or external model files.
+ * This is a compact intent/retrieval engine, not a generative neural LLM.
  */
 public final class LocalAssistant {
     private final Map<String, ArrayList<String[]>> model = new LinkedHashMap<String, ArrayList<String[]>>();
@@ -161,7 +162,7 @@ public final class LocalAssistant {
         if (match.score < 0.20) {
             if (lastIntent.equals("greeting") && has(n,"בסדר","טוב","מצוין","ברוך השם","סבבה")) return "יופי, שמח לשמוע. על מה תרצה לדבר?";
             if (lastIntent.equals("understanding")) return "לא הצלחתי לזהות בביטחון את הכוונה. נסה לנסח במשפט אחר; מנוע הלמידה המקומי עובד עם דוגמאות בעברית ואינו מודל שיחה מלא.";
-            return "אני עדיין לא בטוח שהבנתי את הכוונה. אפשר לנסח במילים אחרות או להפעיל את מצב AI המקוון בהגדרות?";
+            return "לא הצלחתי להבין בביטחון. נסה לנסח את הבקשה במשפט קצר וברור יותר. אני פועל אופליין בלבד.";
         }
         String intent = match.intent;
         lastIntent = intent;
@@ -462,7 +463,42 @@ public final class LocalAssistant {
             }
         }
         double coverage = (double)(common + fuzzy*0.72)/Math.max(1,Math.min(x.size(),y.size()));
-        return cosine*0.68 + Math.min(1.0,coverage)*0.32;
+        double wordScore = cosine*0.68 + Math.min(1.0,coverage)*0.32;
+        double chars = characterNgramSimilarity(a, b);
+        return wordScore*0.62 + chars*0.38;
+    }
+
+    // Character n-grams help match Hebrew spelling variants and small typos,
+    // even when the exact token is not present in the example corpus.
+    private double characterNgramSimilarity(String[] a, String[] b) {
+        Map<String,Integer> x = charNgrams(a);
+        Map<String,Integer> y = charNgrams(b);
+        if (x.isEmpty() || y.isEmpty()) return 0;
+        double dot=0, nx=0, ny=0;
+        for (Map.Entry<String,Integer> e : x.entrySet()) {
+            double vx=e.getValue();
+            Integer count=y.get(e.getKey());
+            if (count!=null) dot += vx*count;
+            nx += vx*vx;
+        }
+        for (Integer v : y.values()) ny += v*v;
+        return nx==0 || ny==0 ? 0 : dot/(Math.sqrt(nx)*Math.sqrt(ny));
+    }
+
+    private Map<String,Integer> charNgrams(String[] words) {
+        HashMap<String,Integer> grams=new HashMap<String,Integer>();
+        for (String word : words) {
+            if (word==null || word.length()==0) continue;
+            String marked="^"+word+"$";
+            for (int n=2;n<=3;n++) {
+                for (int i=0;i+n<=marked.length();i++) {
+                    String gram=marked.substring(i,i+n);
+                    Integer old=grams.get(gram);
+                    grams.put(gram, old==null?1:old+1);
+                }
+            }
+        }
+        return grams;
     }
 
     private boolean containsNegation(String[] words) {
