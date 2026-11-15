@@ -27,6 +27,7 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
     private int screenWidth;
     private String geminiApiKey = "";
     private TextView aiStatus;
+    private boolean cloudBusy = false;
     private final ArrayList<GeminiApiClient.ChatTurn> cloudHistory = new ArrayList<GeminiApiClient.ChatTurn>();
 
     @Override public void onCreate(Bundle state) {
@@ -81,7 +82,7 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         TextView title = text("AI Talk", 19, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         heading.addView(title);
-        TextView subtitle = text("עוזר מקומי • ללא אינטרנט", 10, 0xffb9cbd2);
+        TextView subtitle = text("מקומי או AI מקוון", 10, 0xffb9cbd2);
         heading.addView(subtitle);
         header.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
 
@@ -156,6 +157,10 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
     private void sendText() {
         final String value = input.getText().toString().trim();
         if (value.length() == 0) return;
+        if (geminiApiKey != null && geminiApiKey.trim().length() > 0 && cloudBusy) {
+            Toast.makeText(this, "המתן לתשובת ה-AI הקודמת", Toast.LENGTH_SHORT).show();
+            return;
+        }
         input.setText("");
         addMessage("אתה", value, true);
         try {
@@ -170,16 +175,18 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         }
 
         cloudHistory.add(new GeminiApiClient.ChatTurn("user", value));
-        while (cloudHistory.size() > 12) cloudHistory.remove(0);
+        trimCloudHistory();
+        cloudBusy = true;
         final TextView responseBubble = addMessage("AI Talk • מודל מקוון", "חושב...", false);
         ArrayList<GeminiApiClient.ChatTurn> requestHistory = new ArrayList<GeminiApiClient.ChatTurn>(cloudHistory);
         new GeminiApiClient(geminiApiKey).ask(requestHistory, new GeminiApiClient.Callback() {
             public void onSuccess(final String answer) {
                 runOnUiThread(new Runnable() {
                     public void run() {
+                        cloudBusy = false;
                         responseBubble.setText(answer);
                         cloudHistory.add(new GeminiApiClient.ChatTurn("model", answer));
-                        while (cloudHistory.size() > 12) cloudHistory.remove(0);
+                        trimCloudHistory();
                         speak(answer);
                     }
                 });
@@ -187,6 +194,7 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
             public void onError(final String error) {
                 runOnUiThread(new Runnable() {
                     public void run() {
+                        cloudBusy = false;
                         if (cloudHistory.size() > 0 && cloudHistory.get(cloudHistory.size() - 1).role.equals("user")) {
                             cloudHistory.remove(cloudHistory.size() - 1);
                         }
@@ -197,6 +205,17 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
                 });
             }
         });
+    }
+
+    private void trimCloudHistory() {
+        while (cloudHistory.size() > 12) {
+            if (cloudHistory.size() > 1) {
+                cloudHistory.remove(0);
+                cloudHistory.remove(0);
+            } else {
+                cloudHistory.clear();
+            }
+        }
     }
 
     private void openAiSettings() {
