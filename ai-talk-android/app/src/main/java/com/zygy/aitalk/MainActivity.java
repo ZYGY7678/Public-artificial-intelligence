@@ -38,7 +38,7 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         tts = new TextToSpeech(this, this);
         screenWidth = getResources().getDisplayMetrics().widthPixels;
         buildUi();
-        addMessage("AI Talk", "שלום! אני העוזר המקומי שלך. אפשר לכתוב לי הודעה או ללחוץ על המיקרופון. כתוב „עזרה” כדי לראות מה אני יודע לעשות.", false);
+        addMessage("AI Talk", geminiApiKey.length() > 0 ? "שלום! המודל המקוון מחובר. אפשר לדבר איתי בעברית." : "שלום! כרגע אני במצב מקומי. כדי לחבר מודל AI חכם יותר, לחץ למעלה על „● מקומי” והזן מפתח AI. אפשר גם להמשיך להשתמש בי ללא אינטרנט.", false);
     }
 
     private int dp(float value) {
