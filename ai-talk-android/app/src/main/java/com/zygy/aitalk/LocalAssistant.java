@@ -155,8 +155,8 @@ public final class LocalAssistant {
         ArrayList<String> out=new ArrayList<String>();
         for(String w:raw) {
             if(w.length()==0 || stop(w)) continue;
-            if(synonyms.containsKey(w)) w=synonyms.get(w);
             w=stem(w);
+            if(synonyms.containsKey(w)) w=synonyms.get(w);
             if(w.length()>0) out.add(w);
         }
         return out.toArray(new String[out.size()]);
