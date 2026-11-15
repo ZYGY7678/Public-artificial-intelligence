@@ -5,7 +5,7 @@ android {
         applicationId "com.zygy.aitalk"
         minSdkVersion 19
         targetSdkVersion 28
-        versionCode 3
-        versionName "0.3-gemini-ai"
+        versionCode 4
+        versionName "0.4-offline"
     }
 }
