@@ -76,7 +76,7 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         TextView title = text("AI Talk", 19, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         heading.addView(title);
-        TextView subtitle = text("מקומי או AI מקוון", 10, 0xffb9cbd2);
+        TextView subtitle = text("הבנה בעברית • אופליין", 10, 0xffb9cbd2);
         heading.addView(subtitle);
         header.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
 
