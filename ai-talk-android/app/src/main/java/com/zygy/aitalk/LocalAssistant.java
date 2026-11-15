@@ -161,13 +161,13 @@ public final class LocalAssistant {
         Match match = understand(raw);
         if (match.score < 0.20) {
             if (lastIntent.equals("greeting") && has(n,"בסדר","טוב","מצוין","ברוך השם","סבבה")) return "יופי, שמח לשמוע. על מה תרצה לדבר?";
-            if (lastIntent.equals("understanding")) return "לא הצלחתי לזהות בביטחון את הכוונה. נסה לנסח במשפט אחר; מנוע הלמידה המקומי עובד עם דוגמאות בעברית ואינו מודל שיחה מלא.";
+            if (lastIntent.equals("understanding")) return "לא הצלחתי לזהות בביטחון את הכוונה. נסה לנסח במשפט אחר; המנוע המקומי משווה את המשפט לדוגמאות בעברית ואינו מודל שיחה מלא.";
             return "לא הצלחתי להבין בביטחון. נסה לנסח את הבקשה במשפט קצר וברור יותר. אני פועל אופליין בלבד.";
         }
         String intent = match.intent;
         lastIntent = intent;
         if (intent.equals("greeting")) return userName.length()>0 ? "שלום " + userName + "! מה תרצה לעשות היום?" : "שלום! טוב שבאת. על מה נדבר?";
-        if (intent.equals("identity")) return "אני AI Talk. באפליקציה פועל מסווג למידת מכונה קטן לעברית, שאומן לזהות כוונות לפי תבניות של תווים ומילים. הוא פועל בלי אינטרנט, אך אינו מודל שיחה גנרטיבי כמו ChatGPT.";
+        if (intent.equals("identity")) return "אני AI Talk. אני עוזר עברי מקומי שמשווה משפטים לדוגמאות ולמאגר ידע, עם זיהוי דמיון בין מילים ותווים. אני פועל בלי אינטרנט, אך איני מודל שיחה גנרטיבי כמו ChatGPT.";
         if (intent.equals("help")) return "אפשר לדבר איתי בעברית, לשאול שאלות בסיסיות, לבצע חישובים, לקבל שעה ותאריך, לספר בדיחה ולשוחח על נושאים יומיומיים. אני מנסה להבין גם ניסוחים שונים לאותה כוונה.";
         if (intent.equals("time")) return "השעה עכשיו לפי שעון המכשיר: " + new SimpleDateFormat("HH:mm", new Locale("he","IL")).format(new Date()) + ".";
         if (intent.equals("date")) return "היום לפי שעון המכשיר: " + new SimpleDateFormat("EEEE, d בMMMM yyyy", new Locale("he","IL")).format(new Date()) + ".";
