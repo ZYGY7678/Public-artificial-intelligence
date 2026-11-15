@@ -18,7 +18,6 @@ public final class LocalAssistant {
     private String lastResponse = "";
     private String userName = "";
     private String lastIntent = "";
-    private MLIntentModel mlIntentModel;
 
     public LocalAssistant(Context context) {
         concept("שלום","היי","הי","אהלן","שלומות","הלו");
@@ -112,9 +111,6 @@ public final class LocalAssistant {
         add("apology","סליחה","אני מתנצל","לא התכוונתי","טעיתי במה שאמרתי");
         add("preference","מה אתה מעדיף","מה אתה אוהב","יש לך העדפה","מה התחביב שלך");
         add("howto","איך עושים את זה","תן לי הוראות שלב אחרי שלב","תסביר איך לבצע","מה הצעדים שצריך לעשות");
-        // Load the compact trained classifier. If the model asset is unavailable,
-        // the legacy matcher remains as a safe fallback.
-        this.mlIntentModel = new MLIntentModel(context);
     }
 
     private void concept(String key, String... words) {
@@ -165,7 +161,7 @@ public final class LocalAssistant {
         if (match.score < 0.20) {
             if (lastIntent.equals("greeting") && has(n,"בסדר","טוב","מצוין","ברוך השם","סבבה")) return "יופי, שמח לשמוע. על מה תרצה לדבר?";
             if (lastIntent.equals("understanding")) return "לא הצלחתי לזהות בביטחון את הכוונה. נסה לנסח במשפט אחר; מנוע הלמידה המקומי עובד עם דוגמאות בעברית ואינו מודל שיחה מלא.";
-            return "אני עדיין לא בטוח שהבנתי את הכוונה. אפשר לנסח במילים אחרות? אני לומד לזהות משמעות של משפטים, לא רק מילים בודדות.";
+            return "אני עדיין לא בטוח שהבנתי את הכוונה. אפשר לנסח במילים אחרות או להפעיל את מצב AI המקוון בהגדרות?";
         }
         String intent = match.intent;
         lastIntent = intent;
@@ -422,20 +418,6 @@ public final class LocalAssistant {
     }
 
     private Match understand(String input) {
-        Match legacy = understandLegacy(input);
-        MLIntentModel.Prediction prediction = mlIntentModel == null ? null : mlIntentModel.predict(input);
-        if (prediction != null && prediction.score >= 0.16 && prediction.margin >= 0.025) {
-            // Retain a very strong exact/example match, otherwise prefer the trained model.
-            if (legacy.score >= 0.52 && !legacy.intent.equals(prediction.intent)) return legacy;
-            Match trained = new Match();
-            trained.intent = prediction.intent;
-            trained.score = 0.21;
-            return trained;
-        }
-        return legacy;
-    }
-
-    private Match understandLegacy(String input) {
         String[] query = tokens(input);
         Match best = new Match();
         for (Map.Entry<String,ArrayList<String[]>> entry : model.entrySet()) {
