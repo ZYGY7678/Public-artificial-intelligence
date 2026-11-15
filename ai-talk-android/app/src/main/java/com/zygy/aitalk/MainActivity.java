@@ -9,68 +9,151 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.widget.*;
 import java.util.ArrayList;
 import java.util.Locale;
 
 public class MainActivity extends Activity implements TextToSpeech.OnInitListener {
     private LinearLayout messages;
+    private ScrollView chatScroll;
     private EditText input;
     private TextToSpeech tts;
     private static final int SPEECH_REQUEST = 41;
     private LocalAssistant assistant;
+    private int screenWidth;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         assistant = new LocalAssistant(this);
         tts = new TextToSpeech(this, this);
+        screenWidth = getResources().getDisplayMetrics().widthPixels;
         buildUi();
-        addMessage("AI Talk", "ברוך הבא ל-AI Talk! אני עוזר מקומי קטן שעובד בלי אינטרנט. כתוב „עזרה” כדי לראות מה אני יודע לעשות.", false);
+        addMessage("AI Talk", "שלום! אני העוזר המקומי שלך. אפשר לכתוב לי הודעה או ללחוץ על המיקרופון. כתוב „עזרה” כדי לראות מה אני יודע לעשות.", false);
+    }
+
+    private int dp(float value) {
+        return (int)(value * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    private GradientDrawable shape(int color, int radius) {
+        GradientDrawable d = new GradientDrawable();
+        d.setColor(color);
+        d.setCornerRadius(dp(radius));
+        return d;
+    }
+
+    private TextView text(String value, int size, int color) {
+        TextView t = new TextView(this);
+        t.setText(value);
+        t.setTextSize(size);
+        t.setTextColor(color);
+        return t;
     }
 
     private void buildUi() {
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setPadding(8, 8, 8, 8);
-        page.setBackgroundColor(0xff101820);
-        TextView title = new TextView(this);
-        title.setText("AI Talk");
-        title.setTextColor(0xffffffff);
-        title.setTextSize(22);
-        title.setGravity(Gravity.CENTER);
-        title.setPadding(4, 8, 4, 10);
-        page.addView(title, new LinearLayout.LayoutParams(-1, -2));
-        ScrollView scroll = new ScrollView(this);
+        page.setBackgroundColor(Color.rgb(244, 247, 249));
+
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(dp(12), dp(8), dp(10), dp(8));
+        header.setBackgroundColor(Color.rgb(16, 42, 55));
+
+        TextView logo = text("AI", 17, Color.WHITE);
+        logo.setTypeface(Typeface.DEFAULT_BOLD);
+        logo.setGravity(Gravity.CENTER);
+        logo.setBackground(shape(Color.rgb(0, 150, 136), 14));
+        header.addView(logo, new LinearLayout.LayoutParams(dp(38), dp(38)));
+
+        LinearLayout heading = new LinearLayout(this);
+        heading.setOrientation(LinearLayout.VERTICAL);
+        heading.setPadding(dp(9), 0, 0, 0);
+        TextView title = text("AI Talk", 19, Color.WHITE);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        heading.addView(title);
+        TextView subtitle = text("עוזר מקומי • ללא אינטרנט", 10, 0xffb9cbd2);
+        heading.addView(subtitle);
+        header.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
+
+        TextView status = text("● פעיל", 10, 0xff80cbc4);
+        header.addView(status);
+        page.addView(header, new LinearLayout.LayoutParams(-1, -2));
+
+        chatScroll = new ScrollView(this);
+        chatScroll.setFillViewport(true);
+        chatScroll.setVerticalScrollBarEnabled(false);
         messages = new LinearLayout(this);
         messages.setOrientation(LinearLayout.VERTICAL);
-        scroll.addView(messages);
-        page.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-        LinearLayout controls = new LinearLayout(this);
-        controls.setOrientation(LinearLayout.HORIZONTAL);
+        messages.setPadding(dp(9), dp(10), dp(9), dp(10));
+        chatScroll.addView(messages, new ScrollView.LayoutParams(-1, -2));
+        page.addView(chatScroll, new LinearLayout.LayoutParams(-1, 0, 1));
+
+        TextView hint = text("השיחה נשארת במכשיר", 10, 0xff81939b);
+        hint.setGravity(Gravity.CENTER);
+        hint.setPadding(0, dp(3), 0, dp(4));
+        page.addView(hint, new LinearLayout.LayoutParams(-1, -2));
+
+        LinearLayout composer = new LinearLayout(this);
+        composer.setOrientation(LinearLayout.HORIZONTAL);
+        composer.setGravity(Gravity.CENTER_VERTICAL);
+        composer.setPadding(dp(7), dp(6), dp(7), dp(7));
+        composer.setBackgroundColor(Color.WHITE);
+
         input = new EditText(this);
         input.setSingleLine(true);
-        input.setTextColor(0xff111111);
-        input.setHint("כתוב הודעה...");
-        controls.addView(input, new LinearLayout.LayoutParams(0, 48, 1));
-        Button send = new Button(this);
-        send.setText("שלח");
-        controls.addView(send, new LinearLayout.LayoutParams(-2, 48));
-        send.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { sendText(); }});
-        Button mic = new Button(this);
-        mic.setText("דבר");
-        controls.addView(mic, new LinearLayout.LayoutParams(-2, 48));
-        mic.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { startSpeech(); }});
-        page.addView(controls);
+        input.setTextSize(14);
+        input.setTextColor(0xff20323a);
+        input.setHintTextColor(0xff91a1a8);
+        input.setHint("כתיבת הודעה...");
+        input.setPadding(dp(12), 0, dp(8), 0);
+        input.setBackground(shape(0xfff0f4f5, 20));
+        composer.addView(input, new LinearLayout.LayoutParams(0, dp(42), 1));
+
+        TextView mic = actionButton("🎙", 0xffe7f3f2, 0xff087e75);
+        LinearLayout.LayoutParams micLp = new LinearLayout.LayoutParams(dp(42), dp(42));
+        micLp.setMargins(dp(5), 0, dp(5), 0);
+        composer.addView(mic, micLp);
+        mic.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) { startSpeech(); }
+        });
+
+        TextView send = actionButton("➤", 0xff087e75, Color.WHITE);
+        composer.addView(send, new LinearLayout.LayoutParams(dp(42), dp(42)));
+        send.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) { sendText(); }
+        });
+        input.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            public boolean onEditorAction(TextView v, int actionId, android.view.KeyEvent event) {
+                sendText();
+                return true;
+            }
+        });
+        page.addView(composer, new LinearLayout.LayoutParams(-1, -2));
         setContentView(page);
     }
 
+    private TextView actionButton(String label, int background, int foreground) {
+        TextView b = text(label, 18, foreground);
+        b.setGravity(Gravity.CENTER);
+        b.setTypeface(Typeface.DEFAULT_BOLD);
+        b.setBackground(shape(background, 21));
+        return b;
+    }
+
     private void sendText() {
-        String text = input.getText().toString().trim();
-        if (text.length() == 0) return;
+        String value = input.getText().toString().trim();
+        if (value.length() == 0) return;
         input.setText("");
-        addMessage("אתה", text, true);
-        ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(input.getWindowToken(), 0);
-        String answer = assistant.reply(text);
+        addMessage("אתה", value, true);
+        try {
+            ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(input.getWindowToken(), 0);
+        } catch (Exception ignored) {}
+        String answer = assistant.reply(value);
         addMessage("AI Talk", answer, false);
         speak(answer);
     }
@@ -91,28 +174,49 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         super.onActivityResult(request, result, data);
         if (request == SPEECH_REQUEST && result == RESULT_OK && data != null) {
             ArrayList<String> results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-            if (results != null && results.size() > 0) { input.setText(results.get(0)); sendText(); }
+            if (results != null && results.size() > 0) {
+                input.setText(results.get(0));
+                sendText();
+            }
         }
     }
 
-    private void addMessage(String who, String text, boolean user) {
-        TextView bubble = new TextView(this);
-        bubble.setText(who + "\n" + text);
-        bubble.setTextSize(16);
-        bubble.setTextColor(0xffffffff);
-        bubble.setPadding(10, 9, 10, 9);
-        bubble.setBackgroundColor(user ? 0xff245b78 : 0xff263746);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-        lp.setMargins(0, 4, 0, 4);
-        messages.addView(bubble, lp);
+    private void addMessage(String who, String value, boolean user) {
+        LinearLayout line = new LinearLayout(this);
+        line.setOrientation(LinearLayout.VERTICAL);
+        line.setGravity(user ? Gravity.RIGHT : Gravity.LEFT);
+        LinearLayout.LayoutParams lineLp = new LinearLayout.LayoutParams(-1, -2);
+        lineLp.setMargins(0, dp(3), 0, dp(5));
+
+        TextView bubble = text(value, 13, user ? Color.WHITE : 0xff20343d);
+        bubble.setGravity(Gravity.RIGHT);
+        bubble.setPadding(dp(11), dp(8), dp(11), dp(8));
+        bubble.setBackground(shape(user ? 0xff087e75 : Color.WHITE, 15));
+        bubble.setMaxWidth((int)(screenWidth * 0.84f));
+        bubble.setTextDirection(View.TEXT_DIRECTION_RTL);
+        LinearLayout.LayoutParams bubbleLp = new LinearLayout.LayoutParams(-2, -2);
+        bubbleLp.gravity = user ? Gravity.RIGHT : Gravity.LEFT;
+        line.addView(bubble, bubbleLp);
+
+        TextView name = text(who, 9, 0xff82939a);
+        name.setPadding(dp(4), dp(2), dp(4), 0);
+        LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(-2, -2);
+        nameLp.gravity = user ? Gravity.RIGHT : Gravity.LEFT;
+        line.addView(name, nameLp);
+        messages.addView(line, lineLp);
+        chatScroll.post(new Runnable() {
+            public void run() { chatScroll.fullScroll(View.FOCUS_DOWN); }
+        });
     }
 
-    private void speak(String text) {
-        if (tts != null) tts.speak(text, TextToSpeech.QUEUE_FLUSH, null);
+    private void speak(String value) {
+        if (tts != null) tts.speak(value, TextToSpeech.QUEUE_FLUSH, null);
     }
 
     @Override public void onInit(int status) {
-        if (status == TextToSpeech.SUCCESS && tts != null) tts.setLanguage(new Locale("he", "IL"));
+        if (status == TextToSpeech.SUCCESS && tts != null) {
+            tts.setLanguage(new Locale("he", "IL"));
+        }
     }
 
     @Override protected void onDestroy() {
