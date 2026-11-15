@@ -96,9 +96,9 @@ public final class LocalAssistant {
             }
         }
 
-        if (has(n,"כן","נכון","בדיוק","בהחלט") && lastIntent.length()>0)
+        if (isOneOf(n,"כן","נכון","בדיוק","בהחלט","מסכים","מסכימה") && lastIntent.length()>0)
             return contextualYes();
-        if (has(n,"לא","ממש לא","לא נכון","טעית") && lastIntent.length()>0 && !n.contains("לא הבנת"))
+        if (isOneOf(n,"לא","ממש לא","לא נכון","טעית","שלילי") && lastIntent.length()>0)
             return contextualNo();
 
         Match match = understand(raw);
@@ -115,6 +115,8 @@ public final class LocalAssistant {
         if (intent.equals("time")) return "השעה עכשיו לפי שעון המכשיר: " + new SimpleDateFormat("HH:mm", new Locale("he","IL")).format(new Date()) + ".";
         if (intent.equals("date")) return "היום לפי שעון המכשיר: " + new SimpleDateFormat("EEEE, d בMMMM yyyy", new Locale("he","IL")).format(new Date()) + ".";
         if (intent.equals("thanks") || intent.equals("compliment")) return "בשמחה! טוב שהצלחתי לעזור. מה תרצה לעשות עכשיו?";
+        if (intent.equals("yes")) return "יופי. מה תרצה שנעשה עכשיו?";
+        if (intent.equals("no")) return "הבנתי. תוכל להסביר מה לא מתאים או מה רצית במקום?";
         if (intent.equals("bye")) return "להתראות! אשמח להמשיך לדבר כשתחזור.";
         if (intent.equals("joke")) return "למה המחשב הלך לרופא? כי היה לו וירוס והוא לא רצה להדביק את כל הרשת!";
         if (intent.equals("internet")) return "מנוע ההבנה פועל מקומית ללא אינטרנט. זיהוי הדיבור והקראת הטקסט תלויים בשירותים שמותקנים באנדרואיד.";
@@ -238,6 +240,7 @@ public final class LocalAssistant {
             .replaceAll("[\\u0591-\\u05C7]","").replaceAll("[^\\p{L}\\p{N} +*/xX×÷.,-]"," ").replaceAll("\\s+"," ").trim();
     }
     private boolean has(String s,String... words) { for(String w:words) if(s.contains(norm(w))) return true; return false; }
+    private boolean isOneOf(String s,String... words) { for(String w:words) if(s.equals(norm(w))) return true; return false; }
 
     private String calculate(String input) {
         Matcher m=Pattern.compile(".*?(-?\\d+(?:[.,]\\d+)?)\\s*([+*/xX×÷-])\\s*(-?\\d+(?:[.,]\\d+)?).*").matcher(input);
