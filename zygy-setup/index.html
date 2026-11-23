@@ -5,113 +5,57 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>מפתח Gemini בלחיצה אחת</title>
 <style>
-  :root {
-    --bg: #f5f7fb;
-    --surface: #ffffff;
-    --text: #1b2333;
-    --muted: #5d6b82;
-    --accent: #2457d6;
-    --accent-ink: #ffffff;
-    --ok: #17794a;
-    --err: #b3261e;
-    --line: #d9dfeb;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #12161f;
-      --surface: #1a2030;
-      --text: #e8ecf5;
-      --muted: #9aa7c0;
-      --accent: #6d95ff;
-      --accent-ink: #0c1220;
-      --ok: #55d08f;
-      --err: #ff8a80;
-      --line: #2b3550;
-    }
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: "Heebo", "Segoe UI", Arial, sans-serif;
-    line-height: 1.6;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-  main {
-    width: 100%;
-    max-width: 480px;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 28px 24px;
-  }
-  h1 { font-size: 1.5rem; margin: 0 0 8px; }
-  p { margin: 0 0 16px; color: var(--muted); }
-  button {
-    font: inherit;
-    cursor: pointer;
-    border: 0;
-    border-radius: 10px;
-    padding: 12px 18px;
-    background: var(--accent);
-    color: var(--accent-ink);
-    font-weight: 600;
-    width: 100%;
-  }
-  button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-  button[disabled] { opacity: .6; cursor: default; }
-  button.secondary {
-    background: transparent;
-    color: var(--accent);
-    border: 1px solid var(--line);
-    margin-top: 10px;
-  }
-  .keybox { display: flex; gap: 8px; margin: 16px 0 4px; }
-  .keybox input {
-    flex: 1;
-    font: 0.95rem ui-monospace, Consolas, monospace;
-    padding: 12px;
-    border-radius: 10px;
-    border: 1px solid var(--line);
-    background: var(--bg);
-    color: var(--text);
-    direction: ltr;
-    text-align: left;
-    min-width: 0;
-  }
-  .keybox button { width: auto; white-space: nowrap; }
-  #status { margin-top: 16px; font-size: .95rem; min-height: 1.4em; }
-  #status.err { color: var(--err); }
-  #status.ok { color: var(--ok); }
-  .hidden { display: none; }
-  small { color: var(--muted); display: block; margin-top: 18px; }
+:root{--ink:#17233c;--muted:#61708a;--blue:#315fd4;--line:#e2e9f4;--panel:rgba(255,255,255,.9);--green:#14794d;--red:#b42318}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{min-height:100vh;padding:32px 18px;display:flex;align-items:center;justify-content:center;color:var(--ink);font-family:"Heebo","Segoe UI",Arial,sans-serif;line-height:1.65;background-color:#eaf1ff;background-image:linear-gradient(135deg,rgba(238,245,255,.88),rgba(244,241,255,.76) 52%,rgba(231,249,246,.84)),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 1000'%3E%3Cdefs%3E%3CradialGradient id='a'%3E%3Cstop stop-color='%239bbcff' stop-opacity='.62'/%3E%3Cstop offset='1' stop-color='%239bbcff' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='b'%3E%3Cstop stop-color='%23b9e8dc' stop-opacity='.7'/%3E%3Cstop offset='1' stop-color='%23b9e8dc' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='230' cy='160' rx='470' ry='390' fill='url(%23a)'/%3E%3Cellipse cx='1370' cy='760' rx='520' ry='470' fill='url(%23b)'/%3E%3Cpath d='M0 760 C300 600 430 930 760 790 S1250 600 1600 790 V1000 H0Z' fill='%23fff' fill-opacity='.22'/%3E%3C/svg%3E");background-size:cover;background-position:center;background-attachment:fixed}
+main{width:100%;max-width:690px;padding:clamp(24px,5vw,42px);background:var(--panel);border:1px solid rgba(255,255,255,.85);border-radius:28px;box-shadow:0 24px 80px rgba(49,76,130,.15);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.brand{display:flex;align-items:center;gap:13px;margin-bottom:22px}.brand-mark{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;color:white;background:linear-gradient(145deg,#6d91f4,#315fd4);box-shadow:0 8px 20px rgba(49,95,212,.25);font-size:25px;font-weight:700}.brand-name{font-size:.9rem;color:var(--muted);font-weight:700}
+h1{font-size:clamp(1.65rem,4vw,2.2rem);line-height:1.25;margin:0 0 10px;letter-spacing:-.035em}.lead{font-size:1.04rem;color:var(--muted);margin:0 0 25px}
+.eyebrow{display:inline-flex;align-items:center;gap:7px;color:#3155ad;background:#edf3ff;border:1px solid #dce7ff;padding:5px 11px;border-radius:999px;font-size:.82rem;font-weight:700;margin-bottom:14px}
+.info-card{background:rgba(247,250,255,.9);border:1px solid var(--line);border-radius:19px;padding:19px 20px;margin:18px 0}.info-card h2{font-size:1.08rem;margin:0 0 7px}.info-card p{color:var(--muted);margin:0}.info-card.warning{background:rgba(255,250,239,.86);border-color:#f2e3c4}.info-card.warning h2{color:#755016}
+.steps{list-style:none;padding:0;margin:13px 0 0;display:grid;gap:11px}.steps li{display:flex;align-items:flex-start;gap:11px;color:#394963}.step-number{flex:0 0 26px;height:26px;border-radius:9px;display:grid;place-items:center;background:#e7efff;color:#315fd4;font-size:.86rem;font-weight:800}.notice{font-size:.9rem;color:#72551e;margin-top:12px;padding-top:11px;border-top:1px solid #eee0c5}.permission{font-size:.93rem;color:#485875;margin-top:10px!important}
+#loginBtn,#copyBtn{font:inherit;cursor:pointer;border:0;border-radius:13px;padding:14px 20px;background:linear-gradient(120deg,#426fe4,#2855c8);color:white;font-weight:750;box-shadow:0 9px 20px rgba(49,95,212,.2);transition:transform .18s,box-shadow .18s}#loginBtn{width:100%;font-size:1.02rem;margin-top:7px}#loginBtn:hover,#copyBtn:hover{transform:translateY(-1px);box-shadow:0 12px 24px rgba(49,95,212,.25)}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #88aaff;outline-offset:3px}button[disabled]{opacity:.6;cursor:default;transform:none}
+.keybox{display:flex;gap:9px;margin:20px 0 6px}.keybox input{flex:1;min-width:0;font:.92rem ui-monospace,Consolas,monospace;padding:13px;border-radius:12px;border:1px solid var(--line);background:white;color:var(--ink);direction:ltr;text-align:left}#copyBtn{width:auto;white-space:nowrap;padding-inline:22px}
+.secondary{font:inherit;cursor:pointer;background:transparent;color:var(--blue);border:1px solid #cbd8f1;border-radius:12px;padding:11px 16px;margin-top:10px;width:100%;font-weight:700}
+#status{margin-top:15px;min-height:1.5em;font-size:.95rem}#status.err{color:var(--red)}#status.ok{color:var(--green)}.hidden{display:none!important}
+footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:23px;padding-top:16px;border-top:1px solid var(--line);font-size:.83rem;color:#71809a}a{color:#315fd4;text-decoration:none}a:hover{text-decoration:underline}
+@media(max-width:520px){body{padding:14px 11px;background-attachment:scroll}main{padding:23px 18px;border-radius:22px}.info-card{padding:16px}.keybox{flex-direction:column}#copyBtn{width:100%}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 <main>
-  <h1>מפתח API של Gemini</h1>
-  <p>מתחברים עם חשבון גוגל, והמפתח נוצר ומוצג כאן להעתקה.</p>
+  <div class="brand"><div class="brand-mark" aria-hidden="true">✦</div><div class="brand-name">כלי עזר ל-Gemini</div></div>
+  <div class="eyebrow">✦ יצירה פשוטה ומהירה</div>
+  <h1>מפתח Gemini בכמה צעדים</h1>
+  <p class="lead">מתחברים לחשבון Google, והאתר יוצר עבורך פרויקט Google Cloud ומפתח API לשימוש עם Gemini.</p>
 
-  <div id="loginView">
-    <button id="loginBtn">התחברות עם Google ויצירת מפתח</button>
-  </div>
+  <section class="info-card">
+    <h2>למה צריך לאשר גישה לחשבון Google?</h2>
+    <p>כדי ליצור את המפתח, האתר צריך לבצע פעולות בחשבון Google Cloud שלך: ליצור פרויקט חדש, להפעיל בו את Gemini API וליצור מפתח שמוגבל לשירות Gemini. האישור מאפשר ל-Google לזהות שאתה מרשה לבצע את הפעולות האלה.</p>
+    <p class="permission"><strong>חשוב לדעת:</strong> במסך Google עשויה להופיע הרשאת Google Cloud רחבה. הקוד באתר משתמש בה לצורך הפעולות שתוארו כאן, אבל כדאי לקרוא את מסך ההרשאות לפני שמאשרים.</p>
+  </section>
 
+  <section class="info-card warning">
+    <h2>אם מופיעה הודעה: "האפליקציה הזו לא אומתה על ידי Google"</h2>
+    <p>המשמעות היא שתהליך האימות של האפליקציה מול Google עדיין לא הושלם. Google מציגה אזהרה משום שהיא עדיין לא בדקה ואישרה את האפליקציה לשימוש בהרשאות המבוקשות. האזהרה אינה הוכחה שהאתר מסוכן, אך גם אינה משהו שכדאי להתעלם ממנו.</p>
+    <ol class="steps">
+      <li><span class="step-number">1</span><span>בדקו שהגעתם לאתר שהתכוונתם להשתמש בו ושהכתובת היא <strong>zygy-setup-html.vercel.app</strong>.</span></li>
+      <li><span class="step-number">2</span><span>אם אתם מכירים את האתר וסומכים על מפעיליו, לחצו על <strong>"מתקדם"</strong> (Advanced), אם האפשרות מופיעה.</span></li>
+      <li><span class="step-number">3</span><span>Google עשויה להציג קישור להמשך אל האפליקציה. המשיכו רק אם אתם מבינים את ההרשאה ומעוניינים לאפשר את הפעולות המפורטות.</span></li>
+      <li><span class="step-number">4</span><span>במסך ההרשאות עברו על מה ש-Google מבקשת. אם משהו לא ברור או לא תואם להסבר כאן — בחרו "ביטול" או חזרו לבטיחות.</span></li>
+    </ol>
+    <div class="notice">אין חובה לאשר. אם אינכם בטוחים, אל תמשיכו ואל תמסרו הרשאה.</div>
+  </section>
+
+  <div id="loginView"><button id="loginBtn">המשך עם חשבון Google ויצירת מפתח</button></div>
   <div id="resultView" class="hidden">
-    <div class="keybox">
-      <input id="keyField" type="text" readonly aria-label="מפתח API">
-      <button id="copyBtn">העתק</button>
-    </div>
+    <div class="keybox"><input id="keyField" type="text" readonly aria-label="מפתח API"><button id="copyBtn">העתק מפתח</button></div>
     <button class="secondary" id="againBtn">יצירת מפתח נוסף</button>
   </div>
-
   <div id="status" role="status" aria-live="polite"></div>
-
-  <small>האתר פועל כולו בדפדפן שלך. המפתח לא נשמר ולא נשלח לשום שרת. <a href="/privacy.html">מדיניות פרטיות</a></small>
+  <footer><span>המפתח מוצג בדפדפן ואינו נשלח לשרת של האתר.</span><a href="/privacy.html">מדיניות פרטיות</a></footer>
 </main>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
