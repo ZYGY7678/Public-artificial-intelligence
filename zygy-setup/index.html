@@ -213,6 +213,20 @@ $("againBtn").addEventListener("click", () => {
   setStatus("");
 });
 
+
+// טעינת תמונת הרקע שנוצרה במיוחד לאתר
+fetch("/background.jpg.b64")
+  .then(response => { if (!response.ok) throw new Error("background unavailable"); return response.text(); })
+  .then(encoded => {
+    const image = "data:image/jpeg;base64," + encoded.trim();
+    document.body.style.backgroundImage =
+      'linear-gradient(135deg,rgba(238,245,255,.18),rgba(244,241,255,.12) 52%,rgba(231,249,246,.16)),url("' + image + '")';
+    document.body.style.backgroundSize = "cover";
+    document.body.style.backgroundPosition = "center";
+    document.body.style.backgroundAttachment = "fixed";
+  })
+  .catch(() => {});
+
 init();
 </script>
 </body>
